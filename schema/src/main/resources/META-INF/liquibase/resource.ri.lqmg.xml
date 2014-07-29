@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    This file is part of Everit - Authorization RI Querydsl Schema.
+
+    Everit - Authorization RI Querydsl Schema is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Everit - Authorization RI Querydsl Schema is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public License
+    along with Everit - Authorization RI Querydsl Schema.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<!--
+
+    This file is part of Everit - Resource RI Schema.
+
+    Everit - Resource RI Schema is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Everit - Resource RI Schema is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public License
+    along with Everit - Resource RI Schema.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<lqmg xmlns="http://everit.org/lqmg" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    defaultPackage="org.everit.osgi.resource.ri.schema.qdsl">
+  <namingRules>
+    <classNameRule>
+      <entity>res_resource</entity>
+      <class>Resource</class>
+      <propertyMappings>
+        <primaryKey>
+          <name>pk_res_resource</name>
+          <property>resourcePk</property>
+        </primaryKey>
+      </propertyMappings>
+    </classNameRule>
+  </namingRules>
+</lqmg>
