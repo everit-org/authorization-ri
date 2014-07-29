@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    This file is part of Everit - Authorization RI Querydsl Schema.
+
+    Everit - Authorization RI Querydsl Schema is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Everit - Authorization RI Querydsl Schema is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public License
+    along with Everit - Authorization RI Querydsl Schema.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<databaseChangeLog objectQuotingStrategy="QUOTE_ALL_OBJECTS" logicalFilePath="org.everit.osgi.authorization.ri.schema"
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.0.xsd
+        http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+
+  <include file="eosgi:org.everit.osgi.resource.ri" />
+
+  <changeSet id="1.0.0" author="everit">
+
+    <createTable tableName="authr_permission">
+      <column name="authorized_resource_id" type="bigint">
+        <constraints nullable="false" foreignKeyName="fk_res_r_authr_p_a" referencedTableName="res_resource"
+          referencedColumnNames="resource_id" />
+      </column>
+      <column name="target_resource_id" type="bigint">
+        <constraints nullable="false" foreignKeyName="fk_res_r_authr_p_t" referencedTableName="res_resource"
+          referencedColumnNames="resource_id" />
+      </column>
+      <column name="action" type="varchar(255)" />
+    </createTable>
+    <addPrimaryKey constraintName="pk_authr_perm" tableName="authr_permission" columnNames="authorized_resource_id,target_resource_id"/>
+    
+    <createTable tableName="authr_permission_inheritance">
+      <column name="parent_resource_id" type="bigint">
+        <constraints nullable="false" foreignKeyName="fk_res_r_authr_pi_p" referencedTableName="res_resource"
+          referencedColumnNames="resource_id" />
+      </column>
+      <column name="child_resource_id" type="bigint">
+        <constraints nullable="false" foreignKeyName="fk_res_r_authr_pi_c" referencedTableName="res_resource"
+          referencedColumnNames="resource_id" />
+      </column>
+    </createTable>
+    <addPrimaryKey constraintName="pk_authr_perm_inheritance" tableName="authr_permission_inheritance" columnNames="parent_resource_id,child_resource_id"/>
+  </changeSet>
+
+</databaseChangeLog>
