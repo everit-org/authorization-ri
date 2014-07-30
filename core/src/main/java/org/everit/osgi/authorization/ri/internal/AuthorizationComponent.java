@@ -3,6 +3,7 @@ package org.everit.osgi.authorization.ri.internal;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
+import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Properties;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
@@ -14,7 +15,9 @@ import org.everit.osgi.cache.api.CacheFactory;
 import org.everit.osgi.cache.api.CacheHolder;
 import org.everit.osgi.querydsl.support.QuerydslSupport;
 import org.everit.osgi.transaction.helper.api.TransactionHelper;
+import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.wiring.BundleWiring;
 
 import com.mysema.query.sql.dml.SQLInsertClause;
 
@@ -43,8 +46,8 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
 
     @Activate
     public void activate(BundleContext bundleContext) {
-        piCacheHolder = cacheFactory.createCache(permissionInheritanceCacheConfiguration, this.getClass()
-                .getClassLoader());
+        ClassLoader classLoader = resolveClassLoader(bundleContext);
+        piCacheHolder = cacheFactory.createCache(permissionInheritanceCacheConfiguration, classLoader);
     }
 
     @Override
@@ -73,6 +76,13 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
 
     }
 
+    @Deactivate
+    public void deactivate() {
+        if (piCacheHolder != null) {
+            piCacheHolder.close();
+        }
+    }
+
     @Override
     public long[] getAuthorizationScope(long resourceId) {
         // TODO Auto-generated method stub
@@ -95,6 +105,19 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
     public void removePermissionInheritance(long parentResourceId, long childResourceId) {
         // TODO Auto-generated method stub
 
+    }
+
+    /**
+     * In case this class is used outside OSGi, this method should be overridden.
+     *
+     * @param bundleContext
+     *            The context of the bundle.
+     * @return The classloader.
+     */
+    protected ClassLoader resolveClassLoader(BundleContext bundleContext) {
+        Bundle bundle = bundleContext.getBundle();
+        BundleWiring bundleWiring = bundle.adapt(BundleWiring.class);
+        return bundleWiring.getClassLoader();
     }
 
     public void setCacheFactory(CacheFactory cacheFactory) {
