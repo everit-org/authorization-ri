@@ -38,6 +38,9 @@
       <column name="action" type="varchar(255)" />
     </createTable>
     <addPrimaryKey constraintName="pk_authr_perm" tableName="authr_permission" columnNames="authorized_resource_id,target_resource_id"/>
+    <createIndex tableName="authr_permission" indexName="idx_authr_permission_action" unique="false">
+      <column name="action" />
+    </createIndex>
     
     <createTable tableName="authr_permission_inheritance">
       <column name="parent_resource_id" type="bigint">
