@@ -37,11 +37,11 @@
       </column>
       <column name="action" type="varchar(255)" />
     </createTable>
-    <addPrimaryKey constraintName="pk_authr_perm" tableName="authr_permission" columnNames="authorized_resource_id,target_resource_id"/>
+    <addPrimaryKey constraintName="pk_authr_perm" tableName="authr_permission" columnNames="authorized_resource_id,target_resource_id" />
     <createIndex tableName="authr_permission" indexName="idx_authr_permission_action" unique="false">
       <column name="action" />
     </createIndex>
-    
+
     <createTable tableName="authr_permission_inheritance">
       <column name="parent_resource_id" type="bigint">
         <constraints nullable="false" foreignKeyName="fk_res_r_authr_pi_p" referencedTableName="res_resource"
@@ -52,7 +52,8 @@
           referencedColumnNames="resource_id" />
       </column>
     </createTable>
-    <addPrimaryKey constraintName="pk_authr_perm_inheritance" tableName="authr_permission_inheritance" columnNames="parent_resource_id,child_resource_id"/>
+    <addPrimaryKey constraintName="pk_authr_perm_inheritance" tableName="authr_permission_inheritance"
+      columnNames="parent_resource_id,child_resource_id" />
   </changeSet>
 
 </databaseChangeLog>
