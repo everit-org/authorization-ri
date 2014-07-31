@@ -40,8 +40,22 @@ import com.mysema.query.sql.dml.SQLInsertClause;
         @Property(name = "cacheFactory.target", value = "(cacheName=noop)") })
 public class AuthorizationComponent implements AuthorizationManager, PermissionChecker {
 
+    private static long[] convertCollectionToLongArray(Collection<Long> collection) {
+        long[] result = new long[collection.size()];
+        Iterator<Long> iterator = collection.iterator();
+        int i = 0;
+        while (iterator.hasNext()) {
+            Long element = iterator.next();
+            result[i] = element;
+            i++;
+        }
+        return result;
+    }
+
     @Reference(bind = "setCacheFactory")
     private CacheFactory cacheFactory;
+
+    private CacheHolder<String, Boolean> pCacheHolder;
 
     @Reference(bind = "setPermissionCacheConfiguration")
     private CacheConfiguration<String, Boolean> permissionCacheConfiguration;
@@ -57,14 +71,32 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
     @Reference(name = "transactionHelper", bind = "setTh")
     private TransactionHelper th;
 
-    private CacheHolder<String, Boolean> pCacheHolder;
-
     @Activate
     public void activate(BundleContext bundleContext) {
         ClassLoader classLoader = resolveClassLoader(bundleContext);
         piCacheHolder = cacheFactory.createCache(permissionInheritanceCacheConfiguration, classLoader);
         pCacheHolder = cacheFactory.createCache(permissionCacheConfiguration,
                 classLoader);
+    }
+
+    private void addParentsRecurseToScope(long resourceId, Set<Long> authorizationScope,
+            ConcurrentMap<Long, long[]> piCache) {
+        long[] parentResourceIds = piCache.get(resourceId);
+        if (parentResourceIds == null) {
+            parentResourceIds = th.required(() -> {
+                lockOnResource(resourceId);
+                long[] tmpParentResourceIds = readParentResourceIdsFromDatabase(resourceId);
+                piCache.put(resourceId, tmpParentResourceIds);
+                return tmpParentResourceIds;
+            });
+
+        }
+        for (Long parentResourceId : parentResourceIds) {
+            if (!authorizationScope.contains(parentResourceId)) {
+                authorizationScope.add(parentResourceId);
+                addParentsRecurseToScope(parentResourceId, authorizationScope, piCache);
+            }
+        }
     }
 
     @Override
@@ -85,23 +117,6 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
 
             return null;
         }));
-    }
-
-    private void lockOnResource(long resourceId) {
-        qdsl.execute((connection, configuration) -> {
-            lockOnResource(connection, configuration, resourceId);
-            return null;
-        });
-    }
-
-    private void lockOnResource(Connection connection, Configuration configuration, long resourceId) {
-        SQLQuery query = new SQLQuery(connection, configuration);
-        QResource resource = QResource.resource;
-        List<Long> results = query.from(resource).where(resource.resourceId.eq(resourceId)).forUpdate()
-                .list(resource.resourceId);
-        if (results.size() == 0) {
-            throw new IllegalArgumentException("Resource does not exist: " + resourceId);
-        }
     }
 
     @Override
@@ -141,6 +156,10 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
         }
     }
 
+    private String generatePermissionKey(long authorizedResourceId, long targetResourceId, String action) {
+        return "{" + authorizedResourceId + "," + targetResourceId + "," + action + "}";
+    }
+
     @Override
     public Set<Long> getAuthorizationScope(long resourceId) {
         ConcurrentMap<Long, long[]> piCache = piCacheHolder.getCache();
@@ -149,50 +168,6 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
         addParentsRecurseToScope(resourceId, authorizationScope, piCache);
 
         return authorizationScope;
-    }
-
-    private void addParentsRecurseToScope(long resourceId, Set<Long> authorizationScope,
-            ConcurrentMap<Long, long[]> piCache) {
-        long[] parentResourceIds = piCache.get(resourceId);
-        if (parentResourceIds == null) {
-            parentResourceIds = th.required(() -> {
-                lockOnResource(resourceId);
-                long[] tmpParentResourceIds = readParentResourceIdsFromDatabase(resourceId);
-                piCache.put(resourceId, tmpParentResourceIds);
-                return tmpParentResourceIds;
-            });
-
-        }
-        for (Long parentResourceId : parentResourceIds) {
-            if (!authorizationScope.contains(parentResourceId)) {
-                authorizationScope.add(parentResourceId);
-                addParentsRecurseToScope(parentResourceId, authorizationScope, piCache);
-            }
-        }
-    }
-
-    private long[] readParentResourceIdsFromDatabase(long resourceId) {
-        return qdsl.execute((connection, configuration) -> {
-            SQLQuery query = new SQLQuery(connection, configuration);
-            QPermissionInheritance permissioninheritance = QPermissionInheritance.permissionInheritance;
-            List<Long> result = query.from(permissioninheritance)
-                    .where(permissioninheritance.childResourceId.eq(resourceId))
-                    .list(permissioninheritance.parentResourceId);
-
-            return convertCollectionToLongArray(result);
-        });
-    }
-
-    private static long[] convertCollectionToLongArray(Collection<Long> collection) {
-        long[] result = new long[collection.size()];
-        Iterator<Long> iterator = collection.iterator();
-        int i = 0;
-        while (iterator.hasNext()) {
-            Long element = iterator.next();
-            result[i] = element;
-            i++;
-        }
-        return result;
     }
 
     @Override
@@ -219,6 +194,35 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
         return permissionFound;
     }
 
+    private void lockOnResource(Connection connection, Configuration configuration, long resourceId) {
+        SQLQuery query = new SQLQuery(connection, configuration);
+        QResource resource = QResource.resource;
+        List<Long> results = query.from(resource).where(resource.resourceId.eq(resourceId)).forUpdate()
+                .list(resource.resourceId);
+        if (results.size() == 0) {
+            throw new IllegalArgumentException("Resource does not exist: " + resourceId);
+        }
+    }
+
+    private void lockOnResource(long resourceId) {
+        qdsl.execute((connection, configuration) -> {
+            lockOnResource(connection, configuration, resourceId);
+            return null;
+        });
+    }
+
+    private long[] readParentResourceIdsFromDatabase(long resourceId) {
+        return qdsl.execute((connection, configuration) -> {
+            SQLQuery query = new SQLQuery(connection, configuration);
+            QPermissionInheritance permissioninheritance = QPermissionInheritance.permissionInheritance;
+            List<Long> result = query.from(permissioninheritance)
+                    .where(permissioninheritance.childResourceId.eq(resourceId))
+                    .list(permissioninheritance.parentResourceId);
+
+            return convertCollectionToLongArray(result);
+        });
+    }
+
     private boolean readPermissionFromDatabase(long authorizedResourceId, long targetResourceId, String action) {
         return qdsl.execute((connection, configuration) -> {
             SQLQuery query = new SQLQuery(connection, configuration);
@@ -229,10 +233,6 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
                             .and(permission.action.eq(action)))
                     .exists();
         });
-    }
-
-    private String generatePermissionKey(long authorizedResourceId, long targetResourceId, String action) {
-        return "{" + authorizedResourceId + "," + targetResourceId + "," + action + "}";
     }
 
     @Override
