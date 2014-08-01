@@ -19,6 +19,8 @@ package org.everit.osgi.authorization.ri.tests;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -36,6 +38,7 @@ import org.everit.osgi.querydsl.support.QuerydslSupport;
 import org.everit.osgi.resource.ResourceService;
 import org.junit.Assert;
 import org.junit.Test;
+import org.osgi.service.log.LogService;
 
 import com.mysema.query.sql.RelationalPathBase;
 import com.mysema.query.sql.dml.SQLDeleteClause;
@@ -46,7 +49,9 @@ import com.mysema.query.sql.dml.SQLDeleteClause;
 @Component(immediate = true, policy = ConfigurationPolicy.REQUIRE, metatype = true)
 @Properties({ @Property(name = TestRunnerConstants.SERVICE_PROPERTY_TESTRUNNER_ENGINE_TYPE, value = "junit4"),
         @Property(name = TestRunnerConstants.SERVICE_PROPERTY_TEST_ID, value = "AuthorizationBasicTest"),
-        @Property(name = "authorizationManager.target"), @Property(name = "permissionChecker.target") })
+        @Property(name = "authorizationManager.target"), @Property(name = "permissionChecker.target"),
+        @Property(name = "querydslSupport.target"), @Property(name = "resourceService.target"),
+        @Property(name = "logService.target") })
 @Service(value = AuthorizationBasicTest.class)
 @TestDuringDevelopment
 public class AuthorizationBasicTest {
@@ -74,6 +79,9 @@ public class AuthorizationBasicTest {
     @Reference(bind = "setAuthorizationManager")
     private AuthorizationManager authorizationManager;
 
+    @Reference(name = "logService", bind = "setLog")
+    private LogService log;
+
     @Reference(bind = "setPermissionChecker")
     private PermissionChecker permissionChecker;
 
@@ -98,6 +106,10 @@ public class AuthorizationBasicTest {
         this.authorizationManager = authorizationManager;
     }
 
+    public void setLog(LogService log) {
+        this.log = log;
+    }
+
     public void setPermissionChecker(PermissionChecker permissionChecker) {
         this.permissionChecker = permissionChecker;
     }
@@ -108,6 +120,48 @@ public class AuthorizationBasicTest {
 
     public void setResourceService(ResourceService resourceService) {
         this.resourceService = resourceService;
+    }
+
+    private void stressTest(long[] authorizedResourceIds, long[] targetResourceIds, String action) {
+        log.log(LogService.LOG_INFO, "Starting stress test");
+        final long iterationNum = 10000000;
+        final int threadNum = 2;
+        final Random r = new Random();
+        final AtomicInteger runningThreads = new AtomicInteger(threadNum);
+        final Object mutex = new Object();
+
+        long startTime = System.currentTimeMillis();
+
+        for (int thi = 0; thi < threadNum; thi++) {
+            new Thread(() -> {
+                for (long i = 0; i < iterationNum; i++) {
+                    long authorizedResourceId = authorizedResourceIds[r.nextInt(authorizedResourceIds.length)];
+                    long targetResourceId = targetResourceIds[r.nextInt(targetResourceIds.length)];
+
+                    permissionChecker.hasPermission(authorizedResourceId, targetResourceId, action);
+                }
+                int runningThreadNum = runningThreads.decrementAndGet();
+                if (runningThreadNum == 0) {
+                    synchronized (mutex) {
+                        mutex.notify();
+                    }
+                }
+            }).start();
+        }
+
+        synchronized (mutex) {
+            if (runningThreads.get() > 0) {
+                try {
+                    mutex.wait();
+                } catch (InterruptedException e) {
+                    log.log(LogService.LOG_ERROR, "Waiting for test threads to finish was interrupted", e);
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }
+
+        long endTime = System.currentTimeMillis();
+        log.log(LogService.LOG_INFO, "Stress test finished: " + (endTime - startTime) + " ms");
     }
 
     @Test(expected = RuntimeException.class)
@@ -156,34 +210,20 @@ public class AuthorizationBasicTest {
     }
 
     @Test
-    public void testPermissionceManipulation() {
+    public void testCyclicPermissionInheritance() {
         long a1 = resourceService.createResource();
         long a2 = resourceService.createResource();
         long a3 = resourceService.createResource();
-        long a4 = resourceService.createResource();
-
-        authorizationManager.addPermissionInheritance(a3, a4);
-
-        Assert.assertArrayEquals(new long[] { a1 }, convert(permissionChecker.getAuthorizationScope(a1)));
-        Assert.assertArrayEquals(sort(new long[] { a3, a4 }), convert(permissionChecker.getAuthorizationScope(a4)));
-
-        authorizationManager.addPermissionInheritance(a1, a3);
-
-        Assert.assertArrayEquals(sort(new long[] { a1, a3, a4 }), convert(permissionChecker.getAuthorizationScope(a4)));
-        Assert.assertArrayEquals(sort(new long[] { a1, a3 }), convert(permissionChecker.getAuthorizationScope(a3)));
 
         authorizationManager.addPermissionInheritance(a1, a2);
-        authorizationManager.addPermissionInheritance(a2, a4);
+        authorizationManager.addPermissionInheritance(a2, a1);
+        authorizationManager.addPermissionInheritance(a1, a3);
+        authorizationManager.addPermissionInheritance(a2, a3);
 
-        Assert.assertArrayEquals(sort(new long[] { a1, a2, a3, a4 }),
-                convert(permissionChecker.getAuthorizationScope(a4)));
+        Assert.assertArrayEquals(sort(new long[] { a1, a2, a3 }), convert(permissionChecker.getAuthorizationScope(a3)));
+        Assert.assertArrayEquals(sort(new long[] { a1, a2 }), convert(permissionChecker.getAuthorizationScope(a1)));
 
-        authorizationManager.removePermissionInheritance(a3, a4);
-
-        Assert.assertArrayEquals(sort(new long[] { a1, a2, a4 }), convert(permissionChecker.getAuthorizationScope(a4)));
-
-        authorizationManager.removePermissionInheritance(a3, a4);
-
+        authorizationManager.clearCache();
         clearTable(QPermission.permission);
         clearTable(QPermissionInheritance.permissionInheritance);
         clearResourceTable();
@@ -203,6 +243,130 @@ public class AuthorizationBasicTest {
     @Test(expected = NullPointerException.class)
     public void testPermissionCheckNullAction() {
         permissionChecker.hasPermission(INVALID_RESOURCE_ID, INVALID_RESOURCE_ID, null);
+    }
+
+    @Test
+    public void testPermissionManipulation() {
+
+        long a1 = resourceService.createResource();
+        long a2 = resourceService.createResource();
+        long a3 = resourceService.createResource();
+        long a4 = resourceService.createResource();
+        long a5 = resourceService.createResource();
+        long a6 = resourceService.createResource();
+        long a7 = resourceService.createResource();
+        long a8 = resourceService.createResource();
+
+        long t1 = resourceService.createResource();
+        long t2 = resourceService.createResource();
+        long t3 = resourceService.createResource();
+        long t4 = resourceService.createResource();
+        long t5 = resourceService.createResource();
+        long t6 = resourceService.createResource();
+        long t7 = resourceService.createResource();
+        long t8 = resourceService.createResource();
+
+        final String action1 = "action1";
+
+        authorizationManager.addPermission(a1, t1, action1);
+        authorizationManager.addPermission(a2, t2, action1);
+        authorizationManager.addPermission(a3, t3, action1);
+        authorizationManager.addPermission(a4, t4, action1);
+        authorizationManager.addPermission(a5, t5, action1);
+        authorizationManager.addPermission(a6, t6, action1);
+        authorizationManager.addPermission(a7, t7, action1);
+        authorizationManager.addPermission(a8, t8, action1);
+
+        authorizationManager.addPermissionInheritance(a1, a3);
+        authorizationManager.addPermissionInheritance(a1, a4);
+        authorizationManager.addPermissionInheritance(a2, a4);
+        authorizationManager.addPermissionInheritance(a2, a5);
+        authorizationManager.addPermissionInheritance(a3, a6);
+        authorizationManager.addPermissionInheritance(a4, a6);
+        authorizationManager.addPermissionInheritance(a4, a7);
+        authorizationManager.addPermissionInheritance(a5, a7);
+        authorizationManager.addPermissionInheritance(a6, a8);
+        authorizationManager.addPermissionInheritance(a7, a8);
+
+        Assert.assertArrayEquals(sort(new long[] { a1, a2, a3, a6, a4 }),
+                convert(permissionChecker.getAuthorizationScope(a6)));
+
+        Assert.assertFalse(permissionChecker.hasPermission(a1, t1, "x"));
+        Assert.assertTrue(permissionChecker.hasPermission(a1, t1, action1));
+        Assert.assertTrue(permissionChecker.hasPermission(a8, t1, action1));
+        Assert.assertFalse(permissionChecker.hasPermission(a1, t8, action1));
+        Assert.assertTrue(permissionChecker.hasPermission(a8, t4, action1));
+
+        authorizationManager.removePermissionInheritance(a4, a7);
+
+        Assert.assertTrue(permissionChecker.hasPermission(a8, t4, action1));
+
+        authorizationManager.removePermissionInheritance(a4, a6);
+
+        Assert.assertFalse(permissionChecker.hasPermission(a8, t4, action1));
+        Assert.assertTrue(permissionChecker.hasPermission(a8, t2, action1));
+        Assert.assertArrayEquals(sort(new long[] { a1, a3, a6 }), convert(permissionChecker.getAuthorizationScope(a6)));
+
+        authorizationManager.removePermissionInheritance(a2, a5);
+
+        Assert.assertFalse(permissionChecker.hasPermission(a8, t2, action1));
+
+        Assert.assertTrue(permissionChecker.hasPermission(a8, t1, action1));
+        authorizationManager.removePermission(a1, t1, action1);
+        Assert.assertFalse(permissionChecker.hasPermission(a8, t1, action1));
+
+        // Uncomment if you want some stress testing
+        // stressTest(new long[] { a1, a2, a3, a4, a5, a6, a7, a8 }, new long[] { t1, t2, t3, t4, t5, t6, t7, t8 },
+        // action1);
+
+        authorizationManager.clearCache();
+
+        Assert.assertFalse(permissionChecker.hasPermission(a8, t1, action1));
+        Assert.assertTrue(permissionChecker.hasPermission(a8, t8, action1));
+
+        authorizationManager.clearCache();
+        clearTable(QPermission.permission);
+        clearTable(QPermissionInheritance.permissionInheritance);
+        clearResourceTable();
+    }
+
+    @Test
+    public void testQueryExtension() {
+        long a1 = resourceService.createResource();
+        long a2 = resourceService.createResource();
+        long a3 = resourceService.createResource();
+
+        long t1 = resourceService.createResource();
+        long t2 = resourceService.createResource();
+        long t3 = resourceService.createResource();
+
+        final String action1 = "action1";
+        final String action2 = "action2";
+        final String action3 = "action3";
+
+        authorizationManager.addPermission(a1, t1, action1);
+        authorizationManager.addPermission(a1, t1, action2);
+        authorizationManager.addPermission(a1, t1, action3);
+        authorizationManager.addPermission(a2, t2, action1);
+        authorizationManager.addPermission(a3, t3, action1);
+
+        // TODO
+
+        // authorizationManager.addPermissionInheritance(a1, a3);
+        // authorizationManager.addPermissionInheritance(a1, a4);
+        // authorizationManager.addPermissionInheritance(a2, a4);
+        // authorizationManager.addPermissionInheritance(a2, a5);
+        // authorizationManager.addPermissionInheritance(a3, a6);
+        // authorizationManager.addPermissionInheritance(a4, a6);
+        // authorizationManager.addPermissionInheritance(a4, a7);
+        // authorizationManager.addPermissionInheritance(a5, a7);
+        // authorizationManager.addPermissionInheritance(a6, a8);
+        // authorizationManager.addPermissionInheritance(a7, a8);
+
+        authorizationManager.clearCache();
+        clearTable(QPermission.permission);
+        clearTable(QPermissionInheritance.permissionInheritance);
+        clearResourceTable();
     }
 
     public void testRemovePermissionInheritanceInvalidResources() {

@@ -18,8 +18,8 @@ package org.everit.osgi.authorization.ri.internal;
 
 import java.sql.Connection;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -54,8 +54,15 @@ import com.mysema.query.sql.dml.SQLInsertClause;
 
 @Component(name = AuthorizationRIConstants.SERVICE_FACTORYPID_AUTHORIZATION, configurationFactory = true,
         policy = ConfigurationPolicy.REQUIRE, metatype = true)
-@Properties({ @Property(name = "querydslSupport.target"), @Property(name = "transactionHelper.target"),
-        @Property(name = "cacheFactory.target", value = "(cacheName=noop)") })
+@Properties({
+        @Property(name = AuthorizationRIConstants.PROP_QUERYDSL_SUPPORT_TARGET),
+        @Property(name = AuthorizationRIConstants.PROP_CACHE_FACTORY_TARGET, value = "(cacheName=noop)"),
+        @Property(name = AuthorizationRIConstants.PROP_PERMISSION_CACHE_CONFIGURATION_TARGET,
+                value = "(cacheName=noop)"),
+        @Property(name = AuthorizationRIConstants.PROP_PERMISSION_INHERITANCE_CACHE_CONFIGURATION_TARGET,
+                value = "(cacheName=noop)"),
+        @Property(name = AuthorizationRIConstants.PROP_TRANSACTION_HELPER_TARGET)
+})
 @Service
 public class AuthorizationComponent implements AuthorizationManager, PermissionChecker {
 
@@ -150,7 +157,7 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
     @Override
     public void addPermissionInheritance(long parentResourceId, long childResourceId) {
         th.required(() -> qdsl.execute((connection, configuration) -> {
-            lockOnResource(connection, configuration, parentResourceId);
+            lockOnResource(connection, configuration, childResourceId);
 
             QPermissionInheritance permissionInheritance = QPermissionInheritance.permissionInheritance;
             SQLInsertClause insert = new SQLInsertClause(connection, configuration, permissionInheritance);
@@ -191,7 +198,7 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
     @Override
     public Set<Long> getAuthorizationScope(long resourceId) {
         ConcurrentMap<Long, long[]> piCache = piCacheHolder.getCache();
-        Set<Long> authorizationScope = new HashSet<Long>();
+        Set<Long> authorizationScope = new LinkedHashSet<Long>();
         authorizationScope.add(resourceId);
         addParentsRecurseToScope(resourceId, authorizationScope, piCache);
 
@@ -295,6 +302,8 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
     @Override
     public void removePermissionInheritance(long parentResourceId, long childResourceId) {
         th.required(() -> qdsl.execute((connection, configuration) -> {
+            lockOnResource(connection, configuration, childResourceId);
+
             QPermissionInheritance permissioninheritance = QPermissionInheritance.permissionInheritance;
             SQLDeleteClause sql = new SQLDeleteClause(connection, configuration, permissioninheritance);
 
@@ -302,6 +311,8 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
                     permissioninheritance.parentResourceId.eq(parentResourceId)
                             .and(permissioninheritance.childResourceId.eq(childResourceId)))
                     .execute();
+
+            piCacheHolder.getCache().remove(childResourceId);
             return null;
         }));
     }

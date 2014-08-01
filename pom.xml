@@ -41,7 +41,8 @@
     </properties>
 
     <modules>
-        <module>schema</module>
+        <module>schema-qdsl</module>
+		<module>schema-qdsl-util-api</module>
         <module>core</module>
         <module>tests</module>
     </modules>
