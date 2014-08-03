@@ -17,13 +17,16 @@
     along with Everit - Authorization RI Querydsl Schema.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
-<lqmg xmlns="http://everit.org/lqmg" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    defaultPackage="org.everit.osgi.authorization.ri.schema.qdsl">
+<lqmg xmlns="http://everit.org/lqmg" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" defaultPackage="org.everit.osgi.authorization.ri.schema.qdsl">
   <namingRules>
     <classNameRule>
       <entity>authr_permission</entity>
       <class>Permission</class>
       <propertyMappings>
+        <column>
+          <name>action_</name>
+          <property>action</property>
+        </column>
         <primaryKey>
           <name>pk_authr_perm</name>
           <property>permissionPK</property>

@@ -19,6 +19,7 @@ package org.everit.osgi.authorization.ri.tests;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -32,29 +33,33 @@ import org.everit.osgi.authorization.AuthorizationManager;
 import org.everit.osgi.authorization.PermissionChecker;
 import org.everit.osgi.authorization.ri.schema.qdsl.QPermission;
 import org.everit.osgi.authorization.ri.schema.qdsl.QPermissionInheritance;
+import org.everit.osgi.authorization.ri.schema.qdsl.util.AuthorizationQdslUtil;
 import org.everit.osgi.dev.testrunner.TestDuringDevelopment;
 import org.everit.osgi.dev.testrunner.TestRunnerConstants;
 import org.everit.osgi.querydsl.support.QuerydslSupport;
 import org.everit.osgi.resource.ResourceService;
+import org.everit.osgi.resource.ri.schema.qdsl.QResource;
 import org.junit.Assert;
 import org.junit.Test;
 import org.osgi.service.log.LogService;
 
 import com.mysema.query.sql.RelationalPathBase;
+import com.mysema.query.sql.SQLQuery;
 import com.mysema.query.sql.dml.SQLDeleteClause;
+import com.mysema.query.types.expr.BooleanExpression;
 
 /**
  * Testing the basic functionality of authorization
  */
-@Component(immediate = true, policy = ConfigurationPolicy.REQUIRE, metatype = true)
+@Component(immediate = true, configurationFactory = true, policy = ConfigurationPolicy.REQUIRE, metatype = true)
 @Properties({ @Property(name = TestRunnerConstants.SERVICE_PROPERTY_TESTRUNNER_ENGINE_TYPE, value = "junit4"),
         @Property(name = TestRunnerConstants.SERVICE_PROPERTY_TEST_ID, value = "AuthorizationBasicTest"),
-        @Property(name = "authorizationManager.target"), @Property(name = "permissionChecker.target"),
-        @Property(name = "querydslSupport.target"), @Property(name = "resourceService.target"),
-        @Property(name = "logService.target") })
-@Service(value = AuthorizationBasicTest.class)
+        @Property(name = "authorizationManager.target"), @Property(name = "authorizationQdslUtil.target"),
+        @Property(name = "permissionChecker.target"), @Property(name = "querydslSupport.target"),
+        @Property(name = "resourceService.target"), @Property(name = "logService.target") })
+@Service(value = AuthorizationTest.class)
 @TestDuringDevelopment
-public class AuthorizationBasicTest {
+public class AuthorizationTest {
 
     private static final long INVALID_RESOURCE_ID = -1;
 
@@ -90,6 +95,13 @@ public class AuthorizationBasicTest {
 
     @Reference(bind = "setResourceService")
     private ResourceService resourceService;
+
+    @Reference(bind = "setAuthorizationQdslUtil")
+    private AuthorizationQdslUtil authorizationQdslUtil;
+
+    public void setAuthorizationQdslUtil(AuthorizationQdslUtil authorizationQdslUtil) {
+        this.authorizationQdslUtil = authorizationQdslUtil;
+    }
 
     private void clearResourceTable() {
         clearTable(QPermission.permission);
@@ -220,8 +232,8 @@ public class AuthorizationBasicTest {
         authorizationManager.addPermissionInheritance(a1, a3);
         authorizationManager.addPermissionInheritance(a2, a3);
 
-        Assert.assertArrayEquals(sort(new long[] { a1, a2, a3 }), convert(permissionChecker.getAuthorizationScope(a3)));
-        Assert.assertArrayEquals(sort(new long[] { a1, a2 }), convert(permissionChecker.getAuthorizationScope(a1)));
+        Assert.assertArrayEquals(sort(new long[] { a1, a2, a3 }), sort(permissionChecker.getAuthorizationScope(a3)));
+        Assert.assertArrayEquals(sort(new long[] { a1, a2 }), sort(permissionChecker.getAuthorizationScope(a1)));
 
         authorizationManager.clearCache();
         clearTable(QPermission.permission);
@@ -289,7 +301,7 @@ public class AuthorizationBasicTest {
         authorizationManager.addPermissionInheritance(a7, a8);
 
         Assert.assertArrayEquals(sort(new long[] { a1, a2, a3, a6, a4 }),
-                convert(permissionChecker.getAuthorizationScope(a6)));
+                sort(permissionChecker.getAuthorizationScope(a6)));
 
         Assert.assertFalse(permissionChecker.hasPermission(a1, t1, "x"));
         Assert.assertTrue(permissionChecker.hasPermission(a1, t1, action1));
@@ -305,7 +317,7 @@ public class AuthorizationBasicTest {
 
         Assert.assertFalse(permissionChecker.hasPermission(a8, t4, action1));
         Assert.assertTrue(permissionChecker.hasPermission(a8, t2, action1));
-        Assert.assertArrayEquals(sort(new long[] { a1, a3, a6 }), convert(permissionChecker.getAuthorizationScope(a6)));
+        Assert.assertArrayEquals(sort(new long[] { a1, a3, a6 }), sort(permissionChecker.getAuthorizationScope(a6)));
 
         authorizationManager.removePermissionInheritance(a2, a5);
 
@@ -343,30 +355,68 @@ public class AuthorizationBasicTest {
         final String action1 = "action1";
         final String action2 = "action2";
         final String action3 = "action3";
+        final String action4 = "action4";
 
         authorizationManager.addPermission(a1, t1, action1);
         authorizationManager.addPermission(a1, t1, action2);
-        authorizationManager.addPermission(a1, t1, action3);
         authorizationManager.addPermission(a2, t2, action1);
-        authorizationManager.addPermission(a3, t3, action1);
+        authorizationManager.addPermission(a3, t3, action3);
 
-        // TODO
+        authorizationManager.addPermissionInheritance(a1, a2);
+        authorizationManager.addPermissionInheritance(a1, a3);
 
-        // authorizationManager.addPermissionInheritance(a1, a3);
-        // authorizationManager.addPermissionInheritance(a1, a4);
-        // authorizationManager.addPermissionInheritance(a2, a4);
-        // authorizationManager.addPermissionInheritance(a2, a5);
-        // authorizationManager.addPermissionInheritance(a3, a6);
-        // authorizationManager.addPermissionInheritance(a4, a6);
-        // authorizationManager.addPermissionInheritance(a4, a7);
-        // authorizationManager.addPermissionInheritance(a5, a7);
-        // authorizationManager.addPermissionInheritance(a6, a8);
-        // authorizationManager.addPermissionInheritance(a7, a8);
+        long[] resources = resolveTargetResourcesWithPermission(a1, action1);
+        Assert.assertArrayEquals(new long[] { t1 }, resources);
+
+        resources = resolveTargetResourcesWithPermission(a2, action1);
+        Assert.assertArrayEquals(new long[] { t1, t2 }, resources);
+
+        resources = resolveTargetResourcesWithPermission(a2, action2);
+        Assert.assertArrayEquals(new long[] { t1 }, resources);
+
+        resources = resolveTargetResourcesWithPermission(a2, action4);
+        Assert.assertArrayEquals(new long[] {}, resources);
+
+        resources = resolveTargetResourcesWithPermission(a2, new String[] { action4 });
+        Assert.assertArrayEquals(new long[] {}, resources);
+
+        resources = resolveTargetResourcesWithPermission(a3, new String[] { action3, action2 });
+        Assert.assertArrayEquals(new long[] { t1, t3 }, resources);
 
         authorizationManager.clearCache();
         clearTable(QPermission.permission);
         clearTable(QPermissionInheritance.permissionInheritance);
         clearResourceTable();
+    }
+
+    private long[] resolveTargetResourcesWithPermission(long a1, String action1) {
+        return qdsl.execute((connection, configuration) -> {
+            SQLQuery query = new SQLQuery(connection, configuration);
+            QResource targetResource = new QResource("tr");
+
+            BooleanExpression permissionCheckBooleanExpression = authorizationQdslUtil
+                    .createPermissionCheckBooleanExpression(a1, targetResource.resourceId, action1);
+
+            List<Long> list = query.from(targetResource).where(permissionCheckBooleanExpression)
+                    .list(targetResource.resourceId);
+
+            return convert(list);
+        });
+    }
+
+    private long[] resolveTargetResourcesWithPermission(long a1, String[] actions) {
+        return qdsl.execute((connection, configuration) -> {
+            SQLQuery query = new SQLQuery(connection, configuration);
+            QResource targetResource = new QResource("tr");
+
+            BooleanExpression permissionCheckBooleanExpression = authorizationQdslUtil
+                    .createPermissionCheckBooleanExpression(a1, targetResource.resourceId, actions);
+
+            List<Long> list = query.from(targetResource).where(permissionCheckBooleanExpression)
+                    .list(targetResource.resourceId);
+
+            return convert(list);
+        });
     }
 
     public void testRemovePermissionInheritanceInvalidResources() {

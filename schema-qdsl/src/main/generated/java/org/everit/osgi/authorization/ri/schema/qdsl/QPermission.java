@@ -41,7 +41,7 @@ public class QPermission extends com.mysema.query.sql.RelationalPathBase<QPermis
 
     public class PrimaryKeys {
 
-        public final com.mysema.query.sql.PrimaryKey<QPermission> permissionPK = createPrimaryKey(authorizedResourceId, targetResourceId);
+        public final com.mysema.query.sql.PrimaryKey<QPermission> permissionPK = createPrimaryKey(action, authorizedResourceId, targetResourceId);
 
     }
 
@@ -84,7 +84,7 @@ public class QPermission extends com.mysema.query.sql.RelationalPathBase<QPermis
     }
 
     public void addMetadata() {
-        addMetadata(action, ColumnMetadata.named("action").ofType(12).withSize(255));
+        addMetadata(action, ColumnMetadata.named("action_").ofType(12).withSize(255).notNull());
         addMetadata(authorizedResourceId, ColumnMetadata.named("authorized_resource_id").ofType(-5).withSize(19).notNull());
         addMetadata(targetResourceId, ColumnMetadata.named("target_resource_id").ofType(-5).withSize(19).notNull());
     }

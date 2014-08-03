@@ -196,25 +196,25 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
     }
 
     @Override
-    public Set<Long> getAuthorizationScope(long resourceId) {
+    public long[] getAuthorizationScope(long resourceId) {
         ConcurrentMap<Long, long[]> piCache = piCacheHolder.getCache();
         Set<Long> authorizationScope = new LinkedHashSet<Long>();
         authorizationScope.add(resourceId);
         addParentsRecurseToScope(resourceId, authorizationScope, piCache);
 
-        return authorizationScope;
+        return convertCollectionToLongArray(authorizationScope);
     }
 
     @Override
     public boolean hasPermission(long authorizedResourceId, long targetResourceId, String action) {
         Objects.requireNonNull(action);
 
-        Set<Long> authorizationScope = getAuthorizationScope(authorizedResourceId);
+        long[] authorizationScope = getAuthorizationScope(authorizedResourceId);
         boolean permissionFound = false;
-        Iterator<Long> scopeIterator = authorizationScope.iterator();
+
         ConcurrentMap<String, Boolean> pCache = pCacheHolder.getCache();
-        while (!permissionFound && scopeIterator.hasNext()) {
-            Long resourceIdFromScope = scopeIterator.next();
+        for (int i = 0, n = authorizationScope.length; !permissionFound && i < n; i++) {
+            long resourceIdFromScope = authorizationScope[i];
             String permissionKey = generatePermissionKey(resourceIdFromScope, targetResourceId, action);
             Boolean cachedPermission = pCache.get(permissionKey);
             if (cachedPermission == null) {

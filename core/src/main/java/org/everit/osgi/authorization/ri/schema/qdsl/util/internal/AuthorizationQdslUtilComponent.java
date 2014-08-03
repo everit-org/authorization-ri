@@ -16,11 +16,12 @@
  */
 package org.everit.osgi.authorization.ri.schema.qdsl.util.internal;
 
-import java.util.Collection;
-import java.util.Set;
+import java.util.Objects;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
+import org.apache.felix.scr.annotations.Properties;
+import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
 import org.everit.osgi.authorization.PermissionChecker;
@@ -31,7 +32,9 @@ import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.types.Expression;
 import com.mysema.query.types.expr.BooleanExpression;
 
-@Component(configurationFactory = true, policy = ConfigurationPolicy.REQUIRE)
+@Component(name = "org.everit.osgi.authorization.ri.schema.qdsl.util.AuthorizationQdslUtil",
+        configurationFactory = true, policy = ConfigurationPolicy.REQUIRE, metatype = true)
+@Properties({ @Property(name = "permissionChecker.target") })
 @Service
 public class AuthorizationQdslUtilComponent implements AuthorizationQdslUtil {
 
@@ -40,33 +43,44 @@ public class AuthorizationQdslUtilComponent implements AuthorizationQdslUtil {
 
     @Override
     public BooleanExpression createPermissionCheckBooleanExpression(long authorizedResourceId,
-            Expression<Long> targetResourceId, Collection<String> actions) {
+            Expression<Long> targetResourceId, String... actions) {
 
-        Set<Long> authorizationScope = permissionChecker.getAuthorizationScope(authorizedResourceId);
+        Objects.requireNonNull(targetResourceId, "Parameter targetResourceId must not be null");
+        Objects.requireNonNull(actions, "Parameter actions must not be null");
+        if (actions.length == 0) {
+            throw new IllegalArgumentException("Action collection must contain at least one value");
+        }
 
-        SQLSubQuery subQuery = new SQLSubQuery();
-
-        QPermission permission = QPermission.permission;
-
-        return subQuery.from(permission)
-                .where(permission.targetResourceId.eq(targetResourceId).and(
-                        permission.action.in(actions).and(permission.authorizedResourceId.in(authorizationScope))))
-                .exists();
-    }
-
-    @Override
-    public BooleanExpression createPermissionCheckBooleanExpression(long authorizedResourceId,
-            Expression<Long> targetResourceId, String action) {
-
-        Set<Long> authorizationScope = permissionChecker.getAuthorizationScope(authorizedResourceId);
+        long[] authorizationScope = permissionChecker.getAuthorizationScope(authorizedResourceId);
 
         SQLSubQuery subQuery = new SQLSubQuery();
 
         QPermission permission = QPermission.permission;
 
+        BooleanExpression authorizedResourceIdPredicate;
+        if (authorizationScope.length == 1) {
+            authorizedResourceIdPredicate = permission.authorizedResourceId.eq(authorizationScope[0]);
+        } else {
+            // More than one as the scope contains at least one value (other branch)
+            Long[] authorizationScopeLongArray = new Long[authorizationScope.length];
+            for (int i = 0, n = authorizationScope.length; i < n; i++) {
+                authorizationScopeLongArray[i] = authorizationScope[i];
+            }
+
+            authorizedResourceIdPredicate = permission.authorizedResourceId.in(authorizationScopeLongArray);
+        }
+
+        BooleanExpression actionPredicate = null;
+
+        if (actions.length == 1) {
+            actionPredicate = permission.action.eq(actions[0]);
+        } else {
+            actionPredicate = permission.action.in(actions);
+        }
+
         return subQuery.from(permission)
                 .where(permission.targetResourceId.eq(targetResourceId).and(
-                        permission.action.eq(action).and(permission.authorizedResourceId.in(authorizationScope))))
+                        actionPredicate.and(authorizedResourceIdPredicate)))
                 .exists();
     }
 
