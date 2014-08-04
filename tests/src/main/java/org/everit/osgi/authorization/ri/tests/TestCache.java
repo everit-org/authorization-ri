@@ -29,13 +29,12 @@ import org.everit.osgi.cache.CacheHolder;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 
 @Component
-@Properties({ @Property(name = "cacheName", value = "testCache") })
+@Properties({ @Property(name = "cache.name", value = "testCache") })
 @Service
 public class TestCache implements CacheFactory, CacheConfiguration<Object, Object> {
 
     @Override
     public <K, V> CacheHolder<K, V> createCache(CacheConfiguration<K, V> configuration, ClassLoader classLoader) {
-        // TODO Auto-generated method stub
         return new CacheHolder<K, V>() {
 
             private final ConcurrentMap<K, V> cache = new ConcurrentLinkedHashMap.Builder().maximumWeightedCapacity(

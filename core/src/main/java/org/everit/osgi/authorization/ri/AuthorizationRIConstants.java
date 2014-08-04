@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with Everit - Authorization RI.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.everit.osgi.authorization.ri.internal;
+package org.everit.osgi.authorization.ri;
 
 public final class AuthorizationRIConstants {
 

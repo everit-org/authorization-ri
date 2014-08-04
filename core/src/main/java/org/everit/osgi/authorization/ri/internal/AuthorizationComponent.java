@@ -17,6 +17,7 @@
 package org.everit.osgi.authorization.ri.internal;
 
 import java.sql.Connection;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -35,8 +36,10 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
 import org.everit.osgi.authorization.AuthorizationManager;
 import org.everit.osgi.authorization.PermissionChecker;
+import org.everit.osgi.authorization.ri.AuthorizationRIConstants;
 import org.everit.osgi.authorization.ri.schema.qdsl.QPermission;
 import org.everit.osgi.authorization.ri.schema.qdsl.QPermissionInheritance;
+import org.everit.osgi.authorization.ri.schema.qdsl.util.AuthorizationQdslUtil;
 import org.everit.osgi.cache.CacheConfiguration;
 import org.everit.osgi.cache.CacheFactory;
 import org.everit.osgi.cache.CacheHolder;
@@ -49,22 +52,25 @@ import org.osgi.framework.wiring.BundleWiring;
 
 import com.mysema.query.sql.Configuration;
 import com.mysema.query.sql.SQLQuery;
+import com.mysema.query.sql.SQLSubQuery;
 import com.mysema.query.sql.dml.SQLDeleteClause;
 import com.mysema.query.sql.dml.SQLInsertClause;
+import com.mysema.query.types.Expression;
+import com.mysema.query.types.expr.BooleanExpression;
 
 @Component(name = AuthorizationRIConstants.SERVICE_FACTORYPID_AUTHORIZATION, configurationFactory = true,
         policy = ConfigurationPolicy.REQUIRE, metatype = true)
 @Properties({
         @Property(name = AuthorizationRIConstants.PROP_QUERYDSL_SUPPORT_TARGET),
-        @Property(name = AuthorizationRIConstants.PROP_CACHE_FACTORY_TARGET, value = "(cacheName=noop)"),
+        @Property(name = AuthorizationRIConstants.PROP_CACHE_FACTORY_TARGET, value = "(cache.name=noop)"),
         @Property(name = AuthorizationRIConstants.PROP_PERMISSION_CACHE_CONFIGURATION_TARGET,
-                value = "(cacheName=noop)"),
+                value = "(cache.name=noop)"),
         @Property(name = AuthorizationRIConstants.PROP_PERMISSION_INHERITANCE_CACHE_CONFIGURATION_TARGET,
-                value = "(cacheName=noop)"),
+                value = "(cache.name=noop)"),
         @Property(name = AuthorizationRIConstants.PROP_TRANSACTION_HELPER_TARGET)
 })
 @Service
-public class AuthorizationComponent implements AuthorizationManager, PermissionChecker {
+public class AuthorizationComponent implements AuthorizationManager, PermissionChecker, AuthorizationQdslUtil {
 
     private static long[] convertCollectionToLongArray(Collection<Long> collection) {
         long[] result = new long[collection.size()];
@@ -172,6 +178,46 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
     }
 
     @Override
+    public BooleanExpression authorizationPredicate(long authorizedResourceId,
+            Expression<Long> targetResourceId, String... actions) {
+
+        Objects.requireNonNull(targetResourceId, "Parameter targetResourceId must not be null");
+        validateActionsParameter(actions);
+
+        long[] authorizationScope = getAuthorizationScope(authorizedResourceId);
+
+        SQLSubQuery subQuery = new SQLSubQuery();
+
+        QPermission permission = QPermission.permission;
+
+        BooleanExpression authorizedResourceIdPredicate;
+        if (authorizationScope.length == 1) {
+            authorizedResourceIdPredicate = permission.authorizedResourceId.eq(authorizationScope[0]);
+        } else {
+            // More than one as the scope contains at least one value (other branch)
+            Long[] authorizationScopeLongArray = new Long[authorizationScope.length];
+            for (int i = 0, n = authorizationScope.length; i < n; i++) {
+                authorizationScopeLongArray[i] = authorizationScope[i];
+            }
+
+            authorizedResourceIdPredicate = permission.authorizedResourceId.in(authorizationScopeLongArray);
+        }
+
+        BooleanExpression actionPredicate = null;
+
+        if (actions.length == 1) {
+            actionPredicate = permission.action.eq(actions[0]);
+        } else {
+            actionPredicate = permission.action.in(actions);
+        }
+
+        return subQuery.from(permission)
+                .where(permission.targetResourceId.eq(targetResourceId).and(
+                        actionPredicate.and(authorizedResourceIdPredicate)))
+                .exists();
+    }
+
+    @Override
     public void clearCache() {
         th.required(() -> {
             piCacheHolder.getCache().clear();
@@ -206,32 +252,37 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
     }
 
     @Override
-    public boolean hasPermission(long authorizedResourceId, long targetResourceId, String action) {
-        Objects.requireNonNull(action);
+    public boolean hasPermission(long authorizedResourceId, long targetResourceId, String... actions) {
+        validateActionsParameter(actions);
 
         long[] authorizationScope = getAuthorizationScope(authorizedResourceId);
         boolean permissionFound = false;
 
-        ConcurrentMap<String, Boolean> pCache = pCacheHolder.getCache();
-        for (int i = 0, n = authorizationScope.length; !permissionFound && i < n; i++) {
-            long resourceIdFromScope = authorizationScope[i];
-            String permissionKey = generatePermissionKey(resourceIdFromScope, targetResourceId, action);
-            Boolean cachedPermission = pCache.get(permissionKey);
-            if (cachedPermission == null) {
-                permissionFound = th.required(() -> {
-                    boolean exists = lockOnResource(authorizedResourceId);
-                    if (!exists && resourceIdFromScope == authorizedResourceId) {
-                        return false;
-                    }
-                    boolean tmpHasPermission = readPermissionFromDatabase(resourceIdFromScope, targetResourceId,
-                            action);
-                    pCache.put(permissionKey, tmpHasPermission);
-                    return tmpHasPermission;
-                });
-            } else {
-                permissionFound = cachedPermission;
-            }
+        for (int j = 0, m = actions.length; !permissionFound && j < m; j++) {
+            final String action = actions[j];
 
+            ConcurrentMap<String, Boolean> pCache = pCacheHolder.getCache();
+            for (int i = 0, n = authorizationScope.length; !permissionFound && i < n; i++) {
+                long resourceIdFromScope = authorizationScope[i];
+                String permissionKey = generatePermissionKey(resourceIdFromScope, targetResourceId, action);
+                Boolean cachedPermission = pCache.get(permissionKey);
+
+                if (cachedPermission == null) {
+                    permissionFound = th.required(() -> {
+                        boolean exists = lockOnResource(authorizedResourceId);
+                        if (!exists && resourceIdFromScope == authorizedResourceId) {
+                            return false;
+                        }
+                        boolean tmpHasPermission = readPermissionFromDatabase(resourceIdFromScope, targetResourceId,
+                                action);
+                        pCache.put(permissionKey, tmpHasPermission);
+                        return tmpHasPermission;
+                    });
+                } else {
+                    permissionFound = cachedPermission;
+                }
+
+            }
         }
         return permissionFound;
     }
@@ -349,6 +400,16 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
 
     public void setTh(TransactionHelper th) {
         this.th = th;
+    }
+
+    private void validateActionsParameter(String... actions) {
+        Objects.requireNonNull(actions, "Parameter actions must not be null");
+        if (actions.length == 0) {
+            throw new IllegalArgumentException("Action collection must contain at least one value");
+        }
+        for (String action : actions) {
+            Objects.requireNonNull(action, "Null action was passed in actions parameter: " + Arrays.toString(actions));
+        }
     }
 
 }

@@ -84,6 +84,9 @@ public class AuthorizationTest {
     @Reference(bind = "setAuthorizationManager")
     private AuthorizationManager authorizationManager;
 
+    @Reference(bind = "setAuthorizationQdslUtil")
+    private AuthorizationQdslUtil authorizationQdslUtil;
+
     @Reference(name = "logService", bind = "setLog")
     private LogService log;
 
@@ -96,13 +99,6 @@ public class AuthorizationTest {
     @Reference(bind = "setResourceService")
     private ResourceService resourceService;
 
-    @Reference(bind = "setAuthorizationQdslUtil")
-    private AuthorizationQdslUtil authorizationQdslUtil;
-
-    public void setAuthorizationQdslUtil(AuthorizationQdslUtil authorizationQdslUtil) {
-        this.authorizationQdslUtil = authorizationQdslUtil;
-    }
-
     private void clearResourceTable() {
         clearTable(QPermission.permission);
     }
@@ -114,8 +110,42 @@ public class AuthorizationTest {
         });
     }
 
+    private long[] resolveTargetResourcesWithPermission(long a1, String action1) {
+        return qdsl.execute((connection, configuration) -> {
+            SQLQuery query = new SQLQuery(connection, configuration);
+            QResource targetResource = new QResource("tr");
+
+            BooleanExpression permissionCheck = authorizationQdslUtil.authorizationPredicate(a1,
+                    targetResource.resourceId, action1);
+
+            List<Long> list = query.from(targetResource).where(permissionCheck)
+                    .list(targetResource.resourceId);
+
+            return convert(list);
+        });
+    }
+
+    private long[] resolveTargetResourcesWithPermission(long a1, String[] actions) {
+        return qdsl.execute((connection, configuration) -> {
+            SQLQuery query = new SQLQuery(connection, configuration);
+            QResource targetResource = new QResource("tr");
+
+            BooleanExpression permissionCheckBooleanExpression = authorizationQdslUtil
+                    .authorizationPredicate(a1, targetResource.resourceId, actions);
+
+            List<Long> list = query.from(targetResource).where(permissionCheckBooleanExpression)
+                    .list(targetResource.resourceId);
+
+            return convert(list);
+        });
+    }
+
     public void setAuthorizationManager(AuthorizationManager authorizationManager) {
         this.authorizationManager = authorizationManager;
+    }
+
+    public void setAuthorizationQdslUtil(AuthorizationQdslUtil authorizationQdslUtil) {
+        this.authorizationQdslUtil = authorizationQdslUtil;
     }
 
     public void setLog(LogService log) {
@@ -254,7 +284,17 @@ public class AuthorizationTest {
 
     @Test(expected = NullPointerException.class)
     public void testPermissionCheckNullAction() {
-        permissionChecker.hasPermission(INVALID_RESOURCE_ID, INVALID_RESOURCE_ID, null);
+        permissionChecker.hasPermission(INVALID_RESOURCE_ID, INVALID_RESOURCE_ID, (String[]) null);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testPermissionCheckNullActionInArray() {
+        permissionChecker.hasPermission(INVALID_RESOURCE_ID, INVALID_RESOURCE_ID, (String) null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testPermissionCheckZeroAction() {
+        permissionChecker.hasPermission(INVALID_RESOURCE_ID, INVALID_RESOURCE_ID);
     }
 
     @Test
@@ -387,36 +427,6 @@ public class AuthorizationTest {
         clearTable(QPermission.permission);
         clearTable(QPermissionInheritance.permissionInheritance);
         clearResourceTable();
-    }
-
-    private long[] resolveTargetResourcesWithPermission(long a1, String action1) {
-        return qdsl.execute((connection, configuration) -> {
-            SQLQuery query = new SQLQuery(connection, configuration);
-            QResource targetResource = new QResource("tr");
-
-            BooleanExpression permissionCheckBooleanExpression = authorizationQdslUtil
-                    .createPermissionCheckBooleanExpression(a1, targetResource.resourceId, action1);
-
-            List<Long> list = query.from(targetResource).where(permissionCheckBooleanExpression)
-                    .list(targetResource.resourceId);
-
-            return convert(list);
-        });
-    }
-
-    private long[] resolveTargetResourcesWithPermission(long a1, String[] actions) {
-        return qdsl.execute((connection, configuration) -> {
-            SQLQuery query = new SQLQuery(connection, configuration);
-            QResource targetResource = new QResource("tr");
-
-            BooleanExpression permissionCheckBooleanExpression = authorizationQdslUtil
-                    .createPermissionCheckBooleanExpression(a1, targetResource.resourceId, actions);
-
-            List<Long> list = query.from(targetResource).where(permissionCheckBooleanExpression)
-                    .list(targetResource.resourceId);
-
-            return convert(list);
-        });
     }
 
     public void testRemovePermissionInheritanceInvalidResources() {
