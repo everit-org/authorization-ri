@@ -51,7 +51,7 @@
       </activation>
       <properties>
         <source.dist.folder>${basedir}/src/dist/travis/</source.dist.folder>
-        <eosgi.testnum>13</eosgi.testnum>
+        <eosgi.testnum>26</eosgi.testnum>
       </properties>
     </profile>
   </profiles>
@@ -80,7 +80,7 @@
       <plugin>
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-scr-plugin</artifactId>
-        <version>1.17.0</version>
+        <version>1.19.0</version>
         <executions>
           <execution>
             <id>generate-scr-scrdescriptor</id>
@@ -283,7 +283,7 @@
       <artifactId>org.everit.osgi.authorization.ri</artifactId>
       <version>${project.version}</version>
     </dependency>
-    
+
     <dependency>
       <groupId>org.everit.osgi</groupId>
       <artifactId>org.everit.osgi.authorization.ri.schema.qdsl.util.api</artifactId>
@@ -343,6 +343,20 @@
     <dependency>
       <groupId>org.ops4j.pax.jdbc</groupId>
       <artifactId>pax-jdbc-postgresql</artifactId>
+      <version>0.3.0</version>
+    </dependency>
+
+    <!-- MySQL -->
+
+    <dependency>
+      <groupId>mysql</groupId>
+      <artifactId>mysql-connector-java</artifactId>
+      <version>5.1.31</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.ops4j.pax.jdbc</groupId>
+      <artifactId>pax-jdbc-mysql</artifactId>
       <version>0.3.0</version>
     </dependency>
 
