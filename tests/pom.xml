@@ -51,7 +51,7 @@
       </activation>
       <properties>
         <source.dist.folder>${basedir}/src/dist/travis/</source.dist.folder>
-        <eosgi.testnum>14</eosgi.testnum>
+        <eosgi.testnum>42</eosgi.testnum>
       </properties>
     </profile>
   </profiles>
