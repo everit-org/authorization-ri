@@ -91,7 +91,7 @@
               org.everit.osgi.authorization.ri.schema.qdsl
             </Export-Package>
             <Require-Capability>
-              liquibase.schema;filter:="(name=org.everit.osgi.resource.ri)"
+              liquibase.schema;filter:="(name=org.everit.osgi.resource.ri)",liquibase.schema;filter:="(name=org.everit.osgi.props.ri)"
             </Require-Capability>
             <Provide-Capability>
               liquibase.schema;name=org.everit.osgi.authorization.ri;resource=/META-INF/liquibase/org.everit.osgi.authorization.ri.changelog.xml;lqmg.config.resource=/META-INF/liquibase/org.everit.osgi.authorization.ri.lqmg.xml

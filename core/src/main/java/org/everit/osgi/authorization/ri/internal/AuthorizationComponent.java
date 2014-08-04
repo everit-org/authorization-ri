@@ -43,7 +43,9 @@ import org.everit.osgi.authorization.ri.schema.qdsl.util.AuthorizationQdslUtil;
 import org.everit.osgi.cache.CacheConfiguration;
 import org.everit.osgi.cache.CacheFactory;
 import org.everit.osgi.cache.CacheHolder;
+import org.everit.osgi.props.PropertyManager;
 import org.everit.osgi.querydsl.support.QuerydslSupport;
+import org.everit.osgi.resource.ResourceService;
 import org.everit.osgi.resource.ri.schema.qdsl.QResource;
 import org.everit.osgi.transaction.helper.api.TransactionHelper;
 import org.osgi.framework.Bundle;
@@ -57,6 +59,7 @@ import com.mysema.query.sql.dml.SQLDeleteClause;
 import com.mysema.query.sql.dml.SQLInsertClause;
 import com.mysema.query.types.Expression;
 import com.mysema.query.types.expr.BooleanExpression;
+import com.mysema.query.types.template.BooleanTemplate;
 
 @Component(name = AuthorizationRIConstants.SERVICE_FACTORYPID_AUTHORIZATION, configurationFactory = true,
         policy = ConfigurationPolicy.REQUIRE, metatype = true)
@@ -67,12 +70,13 @@ import com.mysema.query.types.expr.BooleanExpression;
                 value = "(cache.name=noop)"),
         @Property(name = AuthorizationRIConstants.PROP_PERMISSION_INHERITANCE_CACHE_CONFIGURATION_TARGET,
                 value = "(cache.name=noop)"),
+        @Property(name = AuthorizationRIConstants.PROP_PROPERTY_MANAGER_TARGET),
         @Property(name = AuthorizationRIConstants.PROP_TRANSACTION_HELPER_TARGET)
 })
 @Service
 public class AuthorizationComponent implements AuthorizationManager, PermissionChecker, AuthorizationQdslUtil {
 
-    private static long[] convertCollectionToLongArray(Collection<Long> collection) {
+    private static long[] convertCollectionToLongArray(final Collection<Long> collection) {
         long[] result = new long[collection.size()];
         Iterator<Long> iterator = collection.iterator();
         int i = 0;
@@ -103,16 +107,34 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
     @Reference(name = "transactionHelper", bind = "setTh")
     private TransactionHelper th;
 
+    @Reference(bind = "setPropertyManager")
+    private PropertyManager propertyManager;
+
+    @Reference(bind = "setResourceService")
+    private ResourceService resourceService;
+
+    private long systemResourceId;
+
     @Activate
-    public void activate(BundleContext bundleContext) {
+    public void activate(final BundleContext bundleContext) {
         ClassLoader classLoader = resolveClassLoader(bundleContext);
         piCacheHolder = cacheFactory.createCache(permissionInheritanceCacheConfiguration, classLoader);
         pCacheHolder = cacheFactory.createCache(permissionCacheConfiguration,
                 classLoader);
+
+        String systemResourceIdProperty =
+                propertyManager.getProperty(AuthorizationRIConstants.PROP_SYSTEM_RESOURCE_ID);
+        if ((systemResourceIdProperty == null) || "".equals(systemResourceIdProperty)) {
+            systemResourceId = resourceService.createResource();
+            propertyManager.addProperty(
+                    AuthorizationRIConstants.PROP_SYSTEM_RESOURCE_ID, String.valueOf(systemResourceId));
+        } else {
+            systemResourceId = Long.valueOf(systemResourceIdProperty).longValue();
+        }
     }
 
-    private void addParentsRecurseToScope(long resourceId, Set<Long> authorizationScope,
-            ConcurrentMap<Long, long[]> piCache) {
+    private void addParentsRecurseToScope(final long resourceId, final Set<Long> authorizationScope,
+            final ConcurrentMap<Long, long[]> piCache) {
         long[] parentResourceIds = piCache.get(resourceId);
         if (parentResourceIds == null) {
             parentResourceIds = th.required(() -> {
@@ -132,7 +154,7 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
     }
 
     @Override
-    public void addPermission(long authorizedResourceId, long targetResourceId, String action) {
+    public void addPermission(final long authorizedResourceId, final long targetResourceId, final String action) {
         Objects.requireNonNull(action);
 
         th.required(() -> qdsl
@@ -161,7 +183,7 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
     }
 
     @Override
-    public void addPermissionInheritance(long parentResourceId, long childResourceId) {
+    public void addPermissionInheritance(final long parentResourceId, final long childResourceId) {
         th.required(() -> qdsl.execute((connection, configuration) -> {
             lockOnResource(connection, configuration, childResourceId);
 
@@ -178,8 +200,11 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
     }
 
     @Override
-    public BooleanExpression authorizationPredicate(long authorizedResourceId,
-            Expression<Long> targetResourceId, String... actions) {
+    public BooleanExpression authorizationPredicate(final long authorizedResourceId,
+            final Expression<Long> targetResourceId, final String... actions) {
+        if (authorizedResourceId == systemResourceId) {
+            return BooleanTemplate.TRUE;
+        }
 
         Objects.requireNonNull(targetResourceId, "Parameter targetResourceId must not be null");
         validateActionsParameter(actions);
@@ -197,6 +222,9 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
             // More than one as the scope contains at least one value (other branch)
             Long[] authorizationScopeLongArray = new Long[authorizationScope.length];
             for (int i = 0, n = authorizationScope.length; i < n; i++) {
+                if (authorizationScope[i] == systemResourceId) {
+                    return BooleanTemplate.TRUE;
+                }
                 authorizationScopeLongArray[i] = authorizationScope[i];
             }
 
@@ -237,40 +265,55 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
         }
     }
 
-    private String generatePermissionKey(long authorizedResourceId, long targetResourceId, String action) {
+    private String generatePermissionKey(final long authorizedResourceId, final long targetResourceId,
+            final String action) {
         return "{" + authorizedResourceId + "," + targetResourceId + "," + action + "}";
     }
 
     @Override
-    public long[] getAuthorizationScope(long resourceId) {
+    public long[] getAuthorizationScope(final long resourceId) {
         ConcurrentMap<Long, long[]> piCache = piCacheHolder.getCache();
         Set<Long> authorizationScope = new LinkedHashSet<Long>();
         authorizationScope.add(resourceId);
         addParentsRecurseToScope(resourceId, authorizationScope, piCache);
 
-        return convertCollectionToLongArray(authorizationScope);
+        return AuthorizationComponent.convertCollectionToLongArray(authorizationScope);
     }
 
     @Override
-    public boolean hasPermission(long authorizedResourceId, long targetResourceId, String... actions) {
+    public long getSystemResourceId() {
+        return systemResourceId;
+    }
+
+    @Override
+    public boolean hasPermission(final long authorizedResourceId, final long targetResourceId, final String... actions) {
+        if (authorizedResourceId == systemResourceId) {
+            return true;
+        }
+
         validateActionsParameter(actions);
 
         long[] authorizationScope = getAuthorizationScope(authorizedResourceId);
         boolean permissionFound = false;
 
-        for (int j = 0, m = actions.length; !permissionFound && j < m; j++) {
+        for (int j = 0, m = actions.length; !permissionFound && (j < m); j++) {
             final String action = actions[j];
 
             ConcurrentMap<String, Boolean> pCache = pCacheHolder.getCache();
-            for (int i = 0, n = authorizationScope.length; !permissionFound && i < n; i++) {
+            for (int i = 0, n = authorizationScope.length; !permissionFound && (i < n); i++) {
                 long resourceIdFromScope = authorizationScope[i];
+
+                if (resourceIdFromScope == systemResourceId) {
+                    return true;
+                }
+
                 String permissionKey = generatePermissionKey(resourceIdFromScope, targetResourceId, action);
                 Boolean cachedPermission = pCache.get(permissionKey);
 
                 if (cachedPermission == null) {
                     permissionFound = th.required(() -> {
                         boolean exists = lockOnResource(authorizedResourceId);
-                        if (!exists && resourceIdFromScope == authorizedResourceId) {
+                        if (!exists && (resourceIdFromScope == authorizedResourceId)) {
                             return false;
                         }
                         boolean tmpHasPermission = readPermissionFromDatabase(resourceIdFromScope, targetResourceId,
@@ -287,7 +330,7 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
         return permissionFound;
     }
 
-    private boolean lockOnResource(Connection connection, Configuration configuration, long resourceId) {
+    private boolean lockOnResource(final Connection connection, final Configuration configuration, final long resourceId) {
         SQLQuery query = new SQLQuery(connection, configuration);
         QResource resource = QResource.resource;
         List<Long> results = query.from(resource).where(resource.resourceId.eq(resourceId)).forUpdate()
@@ -299,13 +342,13 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
         }
     }
 
-    private boolean lockOnResource(long resourceId) {
+    private boolean lockOnResource(final long resourceId) {
         return qdsl.execute((connection, configuration) -> {
             return lockOnResource(connection, configuration, resourceId);
         });
     }
 
-    private long[] readParentResourceIdsFromDatabase(long resourceId) {
+    private long[] readParentResourceIdsFromDatabase(final long resourceId) {
         return qdsl.execute((connection, configuration) -> {
             SQLQuery query = new SQLQuery(connection, configuration);
             QPermissionInheritance permissioninheritance = QPermissionInheritance.permissionInheritance;
@@ -313,11 +356,12 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
                     .where(permissioninheritance.childResourceId.eq(resourceId))
                     .list(permissioninheritance.parentResourceId);
 
-            return convertCollectionToLongArray(result);
+            return AuthorizationComponent.convertCollectionToLongArray(result);
         });
     }
 
-    private boolean readPermissionFromDatabase(long authorizedResourceId, long targetResourceId, String action) {
+    private boolean readPermissionFromDatabase(final long authorizedResourceId, final long targetResourceId,
+            final String action) {
         return qdsl.execute((connection, configuration) -> {
             SQLQuery query = new SQLQuery(connection, configuration);
             QPermission permission = QPermission.permission;
@@ -330,7 +374,7 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
     }
 
     @Override
-    public void removePermission(long authorizedResourceId, long targetResourceId, String action) {
+    public void removePermission(final long authorizedResourceId, final long targetResourceId, final String action) {
         Objects.requireNonNull(action);
 
         th.required(() -> qdsl.execute((connection, configuration) -> {
@@ -351,7 +395,7 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
     }
 
     @Override
-    public void removePermissionInheritance(long parentResourceId, long childResourceId) {
+    public void removePermissionInheritance(final long parentResourceId, final long childResourceId) {
         th.required(() -> qdsl.execute((connection, configuration) -> {
             lockOnResource(connection, configuration, childResourceId);
 
@@ -375,34 +419,42 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
      *            The context of the bundle.
      * @return The classloader.
      */
-    protected ClassLoader resolveClassLoader(BundleContext bundleContext) {
+    protected ClassLoader resolveClassLoader(final BundleContext bundleContext) {
         Bundle bundle = bundleContext.getBundle();
         BundleWiring bundleWiring = bundle.adapt(BundleWiring.class);
         return bundleWiring.getClassLoader();
     }
 
-    public void setCacheFactory(CacheFactory cacheFactory) {
+    public void setCacheFactory(final CacheFactory cacheFactory) {
         this.cacheFactory = cacheFactory;
     }
 
-    public void setPermissionCacheConfiguration(CacheConfiguration<String, Boolean> permissionCacheConfiguration) {
+    public void setPermissionCacheConfiguration(final CacheConfiguration<String, Boolean> permissionCacheConfiguration) {
         this.permissionCacheConfiguration = permissionCacheConfiguration;
     }
 
     public void setPermissionInheritanceCacheConfiguration(
-            CacheConfiguration<Long, long[]> permissionInheritanceCacheConfiguration) {
+            final CacheConfiguration<Long, long[]> permissionInheritanceCacheConfiguration) {
         this.permissionInheritanceCacheConfiguration = permissionInheritanceCacheConfiguration;
     }
 
-    public void setQdsl(QuerydslSupport qdsl) {
+    public void setPropertyManager(final PropertyManager propertyManager) {
+        this.propertyManager = propertyManager;
+    }
+
+    public void setQdsl(final QuerydslSupport qdsl) {
         this.qdsl = qdsl;
     }
 
-    public void setTh(TransactionHelper th) {
+    public void setResourceService(final ResourceService resourceService) {
+        this.resourceService = resourceService;
+    }
+
+    public void setTh(final TransactionHelper th) {
         this.th = th;
     }
 
-    private void validateActionsParameter(String... actions) {
+    private void validateActionsParameter(final String... actions) {
         Objects.requireNonNull(actions, "Parameter actions must not be null");
         if (actions.length == 0) {
             throw new IllegalArgumentException("Action collection must contain at least one value");

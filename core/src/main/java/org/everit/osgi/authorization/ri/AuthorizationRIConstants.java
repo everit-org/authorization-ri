@@ -27,9 +27,13 @@ public final class AuthorizationRIConstants {
 
     public static final String PROP_QUERYDSL_SUPPORT_TARGET = "querydslSupport.target";
 
+    public static final String PROP_PROPERTY_MANAGER_TARGET = "propertyManager.target";
+
     public static final String PROP_TRANSACTION_HELPER_TARGET = "transactionHelper.target";
 
     public static final String SERVICE_FACTORYPID_AUTHORIZATION = "org.everit.osgi.authorization.ri.Authorization";
+
+    public static final String PROP_SYSTEM_RESOURCE_ID = "org.everit.osgi.authorization.ri.SYSTEM_RESOURCE_ID";
 
     private AuthorizationRIConstants() {
     }

@@ -23,6 +23,7 @@
         http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
 
   <include file="eosgi:org.everit.osgi.resource.ri" />
+  <include file="eosgi:org.everit.osgi.props.ri" />
 
   <changeSet id="1.0.0" author="everit">
 
