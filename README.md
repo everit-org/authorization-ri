@@ -48,8 +48,8 @@ The component needs two caches to be able to work.
  - __Permission cache:__ Stores the records of the permission table. The cache
    also stores those permissions, that were queried but the permission is
    not granted.
-  - __Permission inheritance cache:__ Stores the content of the
-    permission_inheritance table as it is.
+ - __Permission inheritance cache:__ Stores the content of the
+   permission_inheritance table as it is.
 
 NoOp cache can be used, however, the tests show that with a no-operation
 cache the _checkPermission_ function works at least twenty times slower.
