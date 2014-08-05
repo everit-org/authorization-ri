@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
@@ -71,6 +72,7 @@ import com.mysema.query.types.template.BooleanTemplate;
         @Property(name = AuthorizationRIConstants.PROP_PERMISSION_INHERITANCE_CACHE_CONFIGURATION_TARGET,
                 value = "(cache.name=noop)"),
         @Property(name = AuthorizationRIConstants.PROP_PROPERTY_MANAGER_TARGET),
+        @Property(name = AuthorizationRIConstants.PROP_RESOURCE_SERVICE_TARGET),
         @Property(name = AuthorizationRIConstants.PROP_TRANSACTION_HELPER_TARGET)
 })
 @Service
@@ -446,7 +448,7 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
         this.qdsl = qdsl;
     }
 
-    public void setResourceService(final ResourceService resourceService) {
+    public void setResourceService(final ResourceService resourceService, Map<String, Object> props) {
         this.resourceService = resourceService;
     }
 

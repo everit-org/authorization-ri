@@ -35,6 +35,8 @@ public final class AuthorizationRIConstants {
 
     public static final String PROP_SYSTEM_RESOURCE_ID = "org.everit.osgi.authorization.ri.SYSTEM_RESOURCE_ID";
 
+    public static final String PROP_RESOURCE_SERVICE_TARGET = "resourceService.target";
+
     private AuthorizationRIConstants() {
     }
 }
