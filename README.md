@@ -11,10 +11,25 @@ be instantiated multiple times via Configuration Admin. The component
 registers three OSGi services:
 
  - __AuthorizationManager:__ Managing permissions and permission
-   inheritance
- - __PermissionChecker:__ Checking permissions
+   inheritances
+ - __PermissionChecker:__ Checking permissions, getting the scope of the
+   authorization and the resource id of the system
  - __AuthorizationQdslUtil:__ Generating predicates for existing Querydsl
    based database queries
+
+## God mode
+
+There is a resource id that identifies the system. It is created when
+the authorization-ri component is first started and stored in
+property-manager. It is possible to retrieve the resource id of the
+system from the PermissionChecker OSGi service.
+
+When the system resource is used, all permission checks return
+true (even if the target resource id does not exist).
+
+Programmers, who develop custom permission check query extensions, shold
+always take care of checking if the authorized resource id is the resource
+id of the system.
 
 ## Database structure
 

@@ -103,7 +103,7 @@ public class AuthorizationTest {
         qdsl.execute((connection, configuration) -> {
             QResource resource = QResource.resource;
             new SQLDeleteClause(connection, configuration, resource).where(
-                    resource.resourceId.ne(authorizationManager.getSystemResourceId())).execute();
+                    resource.resourceId.ne(permissionChecker.getSystemResourceId())).execute();
             return null;
         });
     }
@@ -267,8 +267,8 @@ public class AuthorizationTest {
         authorizationManager.addPermissionInheritance(a1, a3);
         authorizationManager.addPermissionInheritance(a2, a3);
 
-        Assert.assertArrayEquals(sort(new long[] { a1, a2, a3 }), sort(authorizationManager.getAuthorizationScope(a3)));
-        Assert.assertArrayEquals(sort(new long[] { a1, a2 }), sort(authorizationManager.getAuthorizationScope(a1)));
+        Assert.assertArrayEquals(sort(new long[] { a1, a2, a3 }), sort(permissionChecker.getAuthorizationScope(a3)));
+        Assert.assertArrayEquals(sort(new long[] { a1, a2 }), sort(permissionChecker.getAuthorizationScope(a1)));
 
         authorizationManager.clearCache();
         clearTable(QPermission.permission);
@@ -346,7 +346,7 @@ public class AuthorizationTest {
         authorizationManager.addPermissionInheritance(a7, a8);
 
         Assert.assertArrayEquals(sort(new long[] { a1, a2, a3, a6, a4 }),
-                sort(authorizationManager.getAuthorizationScope(a6)));
+                sort(permissionChecker.getAuthorizationScope(a6)));
 
         Assert.assertFalse(permissionChecker.hasPermission(a1, t1, "x"));
         Assert.assertTrue(permissionChecker.hasPermission(a1, t1, action1));
@@ -362,7 +362,7 @@ public class AuthorizationTest {
 
         Assert.assertFalse(permissionChecker.hasPermission(a8, t4, action1));
         Assert.assertTrue(permissionChecker.hasPermission(a8, t2, action1));
-        Assert.assertArrayEquals(sort(new long[] { a1, a3, a6 }), sort(authorizationManager.getAuthorizationScope(a6)));
+        Assert.assertArrayEquals(sort(new long[] { a1, a3, a6 }), sort(permissionChecker.getAuthorizationScope(a6)));
 
         authorizationManager.removePermissionInheritance(a2, a5);
 
@@ -434,9 +434,18 @@ public class AuthorizationTest {
         clearResourceTable();
     }
 
+    public void testRemovePermissionInheritanceInvalidResources() {
+        authorizationManager.removePermissionInheritance(INVALID_RESOURCE_ID, INVALID_RESOURCE_ID);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testRemovePermissionNullAction() {
+        authorizationManager.removePermission(INVALID_RESOURCE_ID, INVALID_RESOURCE_ID, null);
+    }
+
     @Test
     public void testSystemResource() {
-        long systemResourceId = authorizationManager.getSystemResourceId();
+        long systemResourceId = permissionChecker.getSystemResourceId();
         Assert.assertTrue(permissionChecker.hasPermission(systemResourceId, INVALID_RESOURCE_ID, ""));
 
         long a1 = resourceService.createResource();
@@ -454,14 +463,5 @@ public class AuthorizationTest {
         clearTable(QPermission.permission);
         clearTable(QPermissionInheritance.permissionInheritance);
         clearResourceTable();
-    }
-
-    public void testRemovePermissionInheritanceInvalidResources() {
-        authorizationManager.removePermissionInheritance(INVALID_RESOURCE_ID, INVALID_RESOURCE_ID);
-    }
-
-    @Test(expected = NullPointerException.class)
-    public void testRemovePermissionNullAction() {
-        authorizationManager.removePermission(INVALID_RESOURCE_ID, INVALID_RESOURCE_ID, null);
     }
 }
