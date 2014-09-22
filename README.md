@@ -78,5 +78,7 @@ little bit with large set of data and with a real transactional cache.
 The cache size should be at least as big as many records are used frequently
 from the database frequently on one node.
 
+[![Analytics](https://ga-beacon.appspot.com/UA-15041869-4/everit-org/authorization-ri)](https://github.com/igrigorik/ga-beacon)
+
 [1]: https://github.com/everit-org/authorization-api
 [2]: http://everitorg.wordpress.com/2014/06/18/modularized-persistence/
