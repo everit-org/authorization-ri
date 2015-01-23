@@ -69,7 +69,9 @@ import com.mysema.query.types.template.BooleanTemplate;
                 value = "(cache.name=noop)"),
         @Property(name = AuthorizationRIConstants.PROP_PERMISSION_INHERITANCE_CACHE_TARGET,
                 value = "(cache.name=noop)"),
-        @Property(name = AuthorizationRIConstants.PROP_TRANSACTION_HELPER_TARGET)
+        @Property(name = AuthorizationRIConstants.PROP_TRANSACTION_HELPER_TARGET),
+        @Property(name = AuthorizationRIConstants.PROP_AUTHORIZATION_NAME,
+                value = AuthorizationRIConstants.DEFAULT_AUTHORIZATION_NAME, propertyPrivate = true)
 })
 @Service
 public class AuthorizationComponent implements AuthorizationManager, PermissionChecker, AuthorizationQdslUtil {
