@@ -29,7 +29,7 @@
 
   <groupId>org.everit.osgi</groupId>
   <artifactId>org.everit.osgi.authorization.ri.schema.qdsl.util.api</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1-SNAPSHOT</version>
 
   <packaging>bundle</packaging>
 
@@ -97,9 +97,9 @@
 
   <dependencies>
     <dependency>
-      <groupId>org.everit.osgi</groupId>
-      <artifactId>org.everit.osgi.authorization.ri.schema.qdsl</artifactId>
-      <version>1.0.0</version>
+      <groupId>com.mysema.querydsl</groupId>
+      <artifactId>querydsl-sql</artifactId>
+      <version>3.6.0</version>
     </dependency>
   </dependencies>
 
