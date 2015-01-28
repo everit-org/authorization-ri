@@ -36,9 +36,9 @@ public final class AuthorizationRIConstants {
 
     public static final String PROP_RESOURCE_SERVICE_TARGET = "resourceService.target";
 
-    public static final String PROP_AUTHORIZATION_NAME = "authorization.name";
+    public static final String PROP_AUTHORIZATION_IMPL = "authorization.impl";
 
-    public static final String DEFAULT_AUTHORIZATION_NAME = "ri";
+    public static final String DEFAULT_AUTHORIZATION_IMPL = "ri";
 
     private AuthorizationRIConstants() {
     }
