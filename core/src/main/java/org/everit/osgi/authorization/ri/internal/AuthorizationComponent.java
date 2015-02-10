@@ -66,9 +66,9 @@ import com.mysema.query.types.template.BooleanTemplate;
         @Property(name = AuthorizationRIConstants.PROP_PROPERTY_MANAGER_TARGET),
         @Property(name = AuthorizationRIConstants.PROP_RESOURCE_SERVICE_TARGET),
         @Property(name = AuthorizationRIConstants.PROP_PERMISSION_CACHE_TARGET,
-                value = "(cache.driver.name=noop)"),
+                value = AuthorizationRIConstants.DEFAULT_CACHE_TARGET),
         @Property(name = AuthorizationRIConstants.PROP_PERMISSION_INHERITANCE_CACHE_TARGET,
-                value = "(cache.driver.name=noop)"),
+                value = AuthorizationRIConstants.DEFAULT_CACHE_TARGET),
         @Property(name = AuthorizationRIConstants.PROP_TRANSACTION_HELPER_TARGET),
         @Property(name = AuthorizationRIConstants.PROP_AUTHORIZATION_IMPL, propertyPrivate = true,
                 value = AuthorizationRIConstants.DEFAULT_AUTHORIZATION_IMPL)

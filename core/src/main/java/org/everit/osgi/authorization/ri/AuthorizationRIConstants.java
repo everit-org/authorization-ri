@@ -24,6 +24,8 @@ public final class AuthorizationRIConstants {
 
     public static final String PROP_PERMISSION_INHERITANCE_CACHE_TARGET = "permissionInheritanceCache.target";
 
+    public static final String DEFAULT_CACHE_TARGET = "(MUST_BE_SET=TO_SOMETHING)";
+
     public static final String PROP_QUERYDSL_SUPPORT_TARGET = "querydslSupport.target";
 
     public static final String PROP_PROPERTY_MANAGER_TARGET = "propertyManager.target";
