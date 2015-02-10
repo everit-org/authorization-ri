@@ -36,21 +36,17 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
 import org.everit.osgi.authorization.AuthorizationManager;
 import org.everit.osgi.authorization.PermissionChecker;
+import org.everit.osgi.authorization.qdsl.util.AuthorizationQdslUtil;
 import org.everit.osgi.authorization.ri.AuthorizationRIConstants;
 import org.everit.osgi.authorization.ri.schema.qdsl.QPermission;
 import org.everit.osgi.authorization.ri.schema.qdsl.QPermissionInheritance;
-import org.everit.osgi.authorization.ri.schema.qdsl.util.AuthorizationQdslUtil;
-import org.everit.osgi.cache.CacheConfiguration;
-import org.everit.osgi.cache.CacheFactory;
-import org.everit.osgi.cache.CacheHolder;
 import org.everit.osgi.props.PropertyManager;
 import org.everit.osgi.querydsl.support.QuerydslSupport;
 import org.everit.osgi.resource.ResourceService;
 import org.everit.osgi.resource.ri.schema.qdsl.QResource;
 import org.everit.osgi.transaction.helper.api.TransactionHelper;
-import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
-import org.osgi.framework.wiring.BundleWiring;
+import org.osgi.framework.Constants;
 
 import com.mysema.query.sql.Configuration;
 import com.mysema.query.sql.SQLQuery;
@@ -64,15 +60,18 @@ import com.mysema.query.types.template.BooleanTemplate;
 @Component(name = AuthorizationRIConstants.SERVICE_FACTORYPID_AUTHORIZATION, configurationFactory = true,
         policy = ConfigurationPolicy.REQUIRE, metatype = true)
 @Properties({
+        @Property(name = Constants.SERVICE_DESCRIPTION, propertyPrivate = false,
+                value = AuthorizationRIConstants.DEFAULT_SERVICE_DESCRIPTION),
         @Property(name = AuthorizationRIConstants.PROP_QUERYDSL_SUPPORT_TARGET),
         @Property(name = AuthorizationRIConstants.PROP_PROPERTY_MANAGER_TARGET),
         @Property(name = AuthorizationRIConstants.PROP_RESOURCE_SERVICE_TARGET),
-        @Property(name = AuthorizationRIConstants.PROP_CACHE_FACTORY_TARGET, value = "(cache.name=noop)"),
-        @Property(name = AuthorizationRIConstants.PROP_PERMISSION_CACHE_CONFIGURATION_TARGET,
-                value = "(cache.name=noop)"),
-        @Property(name = AuthorizationRIConstants.PROP_PERMISSION_INHERITANCE_CACHE_CONFIGURATION_TARGET,
-                value = "(cache.name=noop)"),
-        @Property(name = AuthorizationRIConstants.PROP_TRANSACTION_HELPER_TARGET)
+        @Property(name = AuthorizationRIConstants.PROP_PERMISSION_CACHE_TARGET,
+                value = AuthorizationRIConstants.DEFAULT_CACHE_TARGET),
+        @Property(name = AuthorizationRIConstants.PROP_PERMISSION_INHERITANCE_CACHE_TARGET,
+                value = AuthorizationRIConstants.DEFAULT_CACHE_TARGET),
+        @Property(name = AuthorizationRIConstants.PROP_TRANSACTION_HELPER_TARGET),
+        @Property(name = AuthorizationRIConstants.PROP_AUTHORIZATION_IMPL, propertyPrivate = true,
+                value = AuthorizationRIConstants.DEFAULT_AUTHORIZATION_IMPL)
 })
 @Service
 public class AuthorizationComponent implements AuthorizationManager, PermissionChecker, AuthorizationQdslUtil {
@@ -89,18 +88,11 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
         return result;
     }
 
-    @Reference(bind = "setCacheFactory")
-    private CacheFactory cacheFactory;
+    @Reference(bind = "setPermissionCache")
+    private ConcurrentMap<String, Boolean> permissionCache;
 
-    private CacheHolder<String, Boolean> pCacheHolder;
-
-    @Reference(bind = "setPermissionCacheConfiguration")
-    private CacheConfiguration<String, Boolean> permissionCacheConfiguration;
-
-    @Reference(bind = "setPermissionInheritanceCacheConfiguration")
-    private CacheConfiguration<Long, long[]> permissionInheritanceCacheConfiguration;
-
-    private CacheHolder<Long, long[]> piCacheHolder = null;
+    @Reference(bind = "setPermissionInheritanceCache")
+    private ConcurrentMap<Long, long[]> permissionInheritanceCache;
 
     @Reference(name = "querydslSupport", bind = "setQdsl")
     private QuerydslSupport qdsl;
@@ -118,11 +110,6 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
 
     @Activate
     public void activate(final BundleContext bundleContext) {
-        ClassLoader classLoader = resolveClassLoader(bundleContext);
-        piCacheHolder = cacheFactory.createCache(permissionInheritanceCacheConfiguration, classLoader);
-        pCacheHolder = cacheFactory.createCache(permissionCacheConfiguration,
-                classLoader);
-
         String systemResourceIdProperty =
                 propertyManager.getProperty(AuthorizationRIConstants.PROP_SYSTEM_RESOURCE_ID);
         if ((systemResourceIdProperty == null) || "".equals(systemResourceIdProperty)) {
@@ -134,14 +121,13 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
         }
     }
 
-    private void addParentsRecurseToScope(final long resourceId, final Set<Long> authorizationScope,
-            final ConcurrentMap<Long, long[]> piCache) {
-        long[] parentResourceIds = piCache.get(resourceId);
+    private void addParentsRecurseToScope(final long resourceId, final Set<Long> authorizationScope) {
+        long[] parentResourceIds = permissionInheritanceCache.get(resourceId);
         if (parentResourceIds == null) {
             parentResourceIds = th.required(() -> {
                 lockOnResource(resourceId);
                 long[] tmpParentResourceIds = readParentResourceIdsFromDatabase(resourceId);
-                piCache.put(resourceId, tmpParentResourceIds);
+                permissionInheritanceCache.put(resourceId, tmpParentResourceIds);
                 return tmpParentResourceIds;
             });
 
@@ -149,7 +135,7 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
         for (Long parentResourceId : parentResourceIds) {
             if (!authorizationScope.contains(parentResourceId)) {
                 authorizationScope.add(parentResourceId);
-                addParentsRecurseToScope(parentResourceId, authorizationScope, piCache);
+                addParentsRecurseToScope(parentResourceId, authorizationScope);
             }
         }
     }
@@ -176,8 +162,7 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
                             .set(p.action, action)
                             .execute();
 
-                    pCacheHolder.getCache().put(generatePermissionKey(authorizedResourceId, targetResourceId, action),
-                            true);
+                    permissionCache.put(generatePermissionKey(authorizedResourceId, targetResourceId, action), true);
 
                     return null;
                 }));
@@ -195,7 +180,7 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
                     .set(permissionInheritance.childResourceId, childResourceId)
                     .execute();
 
-            piCacheHolder.getCache().remove(childResourceId);
+            permissionInheritanceCache.remove(childResourceId);
             return null;
         }));
     }
@@ -249,8 +234,8 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
     @Override
     public void clearCache() {
         th.required(() -> {
-            piCacheHolder.getCache().clear();
-            pCacheHolder.getCache().clear();
+            permissionInheritanceCache.clear();
+            permissionCache.clear();
             return null;
         });
 
@@ -258,12 +243,7 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
 
     @Deactivate
     public void deactivate() {
-        if (piCacheHolder != null) {
-            piCacheHolder.close();
-        }
-        if (pCacheHolder != null) {
-            pCacheHolder.close();
-        }
+        clearCache();
     }
 
     private String generatePermissionKey(final long authorizedResourceId, final long targetResourceId,
@@ -273,10 +253,9 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
 
     @Override
     public long[] getAuthorizationScope(final long resourceId) {
-        ConcurrentMap<Long, long[]> piCache = piCacheHolder.getCache();
         Set<Long> authorizationScope = new LinkedHashSet<Long>();
         authorizationScope.add(resourceId);
-        addParentsRecurseToScope(resourceId, authorizationScope, piCache);
+        addParentsRecurseToScope(resourceId, authorizationScope);
 
         return AuthorizationComponent.convertCollectionToLongArray(authorizationScope);
     }
@@ -300,7 +279,6 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
         for (int j = 0, m = actions.length; !permissionFound && (j < m); j++) {
             final String action = actions[j];
 
-            ConcurrentMap<String, Boolean> pCache = pCacheHolder.getCache();
             for (int i = 0, n = authorizationScope.length; !permissionFound && (i < n); i++) {
                 long resourceIdFromScope = authorizationScope[i];
 
@@ -309,7 +287,7 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
                 }
 
                 String permissionKey = generatePermissionKey(resourceIdFromScope, targetResourceId, action);
-                Boolean cachedPermission = pCache.get(permissionKey);
+                Boolean cachedPermission = permissionCache.get(permissionKey);
 
                 if (cachedPermission == null) {
                     permissionFound = th.required(() -> {
@@ -319,7 +297,7 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
                         }
                         boolean tmpHasPermission = readPermissionFromDatabase(resourceIdFromScope, targetResourceId,
                                 action);
-                        pCache.put(permissionKey, tmpHasPermission);
+                        permissionCache.put(permissionKey, tmpHasPermission);
                         return tmpHasPermission;
                     });
                 } else {
@@ -390,7 +368,7 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
                     .execute();
 
             String permissionKey = generatePermissionKey(authorizedResourceId, targetResourceId, action);
-            pCacheHolder.getCache().put(permissionKey, false);
+            permissionCache.put(permissionKey, false);
             return null;
         }));
     }
@@ -408,35 +386,17 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
                             .and(permissioninheritance.childResourceId.eq(childResourceId)))
                     .execute();
 
-            piCacheHolder.getCache().remove(childResourceId);
+            permissionInheritanceCache.remove(childResourceId);
             return null;
         }));
     }
 
-    /**
-     * In case this class is used outside OSGi, this method should be overridden.
-     *
-     * @param bundleContext
-     *            The context of the bundle.
-     * @return The classloader.
-     */
-    protected ClassLoader resolveClassLoader(final BundleContext bundleContext) {
-        Bundle bundle = bundleContext.getBundle();
-        BundleWiring bundleWiring = bundle.adapt(BundleWiring.class);
-        return bundleWiring.getClassLoader();
+    public void setPermissionCache(final ConcurrentMap<String, Boolean> permissionCache) {
+        this.permissionCache = permissionCache;
     }
 
-    public void setCacheFactory(final CacheFactory cacheFactory) {
-        this.cacheFactory = cacheFactory;
-    }
-
-    public void setPermissionCacheConfiguration(final CacheConfiguration<String, Boolean> permissionCacheConfiguration) {
-        this.permissionCacheConfiguration = permissionCacheConfiguration;
-    }
-
-    public void setPermissionInheritanceCacheConfiguration(
-            final CacheConfiguration<Long, long[]> permissionInheritanceCacheConfiguration) {
-        this.permissionInheritanceCacheConfiguration = permissionInheritanceCacheConfiguration;
+    public void setPermissionInheritanceCache(final ConcurrentMap<Long, long[]> permissionInheritanceCache) {
+        this.permissionInheritanceCache = permissionInheritanceCache;
     }
 
     public void setPropertyManager(final PropertyManager propertyManager) {

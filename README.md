@@ -27,7 +27,7 @@ system from the PermissionChecker OSGi service.
 When the system resource is used, all permission checks return
 true (even if the target resource id does not exist).
 
-Programmers, who develop custom permission check query extensions, shold
+Programmers, who develop custom permission check query extensions, should
 always take care of checking if the authorized resource id is the resource
 id of the system.
 

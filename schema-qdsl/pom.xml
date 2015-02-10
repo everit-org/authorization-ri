@@ -29,7 +29,7 @@
 
   <groupId>org.everit.osgi</groupId>
   <artifactId>org.everit.osgi.authorization.ri.schema.qdsl</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1-SNAPSHOT</version>
 
   <packaging>bundle</packaging>
 
@@ -79,7 +79,7 @@
       <plugin>
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
-        <version>2.5.0</version>
+        <version>2.5.3</version>
         <extensions>true</extensions>
         <configuration>
           <instructions>
@@ -88,7 +88,7 @@
               *
             </Import-Package>
             <Export-Package>
-              org.everit.osgi.authorization.ri.schema.qdsl
+              org.everit.osgi.authorization.ri.schema.qdsl;version=1.0.0
             </Export-Package>
             <Require-Capability>
               liquibase.schema;filter:="(name=org.everit.osgi.resource.ri)",liquibase.schema;filter:="(name=org.everit.osgi.props.ri)"
@@ -98,6 +98,19 @@
             </Provide-Capability>
           </instructions>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>net.distilledcode.maven</groupId>
+        <artifactId>baselining-maven-plugin</artifactId>
+        <version>1.0.4</version>
+        <executions>
+          <execution>
+            <id>baseline</id>
+            <goals>
+              <goal>baseline</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>org.everit.osgi.dev</groupId>

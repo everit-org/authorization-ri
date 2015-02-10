@@ -31,9 +31,9 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
 import org.everit.osgi.authorization.AuthorizationManager;
 import org.everit.osgi.authorization.PermissionChecker;
+import org.everit.osgi.authorization.qdsl.util.AuthorizationQdslUtil;
 import org.everit.osgi.authorization.ri.schema.qdsl.QPermission;
 import org.everit.osgi.authorization.ri.schema.qdsl.QPermissionInheritance;
-import org.everit.osgi.authorization.ri.schema.qdsl.util.AuthorizationQdslUtil;
 import org.everit.osgi.dev.testrunner.TestDuringDevelopment;
 import org.everit.osgi.dev.testrunner.TestRunnerConstants;
 import org.everit.osgi.querydsl.support.QuerydslSupport;
@@ -61,9 +61,7 @@ import com.mysema.query.types.expr.BooleanExpression;
 @TestDuringDevelopment
 public class AuthorizationTest {
 
-    private static final long INVALID_RESOURCE_ID = -1;
-
-    private static long[] convert(Collection<Long> collection) {
+    private static long[] convert(final Collection<Long> collection) {
         long[] result = new long[collection.size()];
         Iterator<Long> iterator = collection.iterator();
         int i = 0;
@@ -76,10 +74,12 @@ public class AuthorizationTest {
         return result;
     }
 
-    private static long[] sort(long[] data) {
+    private static long[] sort(final long[] data) {
         Arrays.sort(data);
         return data;
     }
+
+    private static final long INVALID_RESOURCE_ID = -1;
 
     @Reference(bind = "setAuthorizationManager")
     private AuthorizationManager authorizationManager;
@@ -108,14 +108,14 @@ public class AuthorizationTest {
         });
     }
 
-    private void clearTable(RelationalPathBase<?> path) {
+    private void clearTable(final RelationalPathBase<?> path) {
         qdsl.execute((connection, configuration) -> {
             new SQLDeleteClause(connection, configuration, path).execute();
             return null;
         });
     }
 
-    private long[] resolveTargetResourcesWithPermission(long a1, String action1) {
+    private long[] resolveTargetResourcesWithPermission(final long a1, final String action1) {
         return qdsl.execute((connection, configuration) -> {
             SQLQuery query = new SQLQuery(connection, configuration);
             QResource targetResource = new QResource("tr");
@@ -126,11 +126,11 @@ public class AuthorizationTest {
             List<Long> list = query.from(targetResource).where(permissionCheck)
                     .list(targetResource.resourceId);
 
-            return convert(list);
+            return AuthorizationTest.convert(list);
         });
     }
 
-    private long[] resolveTargetResourcesWithPermission(long a1, String[] actions) {
+    private long[] resolveTargetResourcesWithPermission(final long a1, final String[] actions) {
         return qdsl.execute((connection, configuration) -> {
             SQLQuery query = new SQLQuery(connection, configuration);
             QResource targetResource = new QResource("tr");
@@ -141,35 +141,35 @@ public class AuthorizationTest {
             List<Long> list = query.from(targetResource).where(permissionCheckBooleanExpression)
                     .list(targetResource.resourceId);
 
-            return convert(list);
+            return AuthorizationTest.convert(list);
         });
     }
 
-    public void setAuthorizationManager(AuthorizationManager authorizationManager) {
+    public void setAuthorizationManager(final AuthorizationManager authorizationManager) {
         this.authorizationManager = authorizationManager;
     }
 
-    public void setAuthorizationQdslUtil(AuthorizationQdslUtil authorizationQdslUtil) {
+    public void setAuthorizationQdslUtil(final AuthorizationQdslUtil authorizationQdslUtil) {
         this.authorizationQdslUtil = authorizationQdslUtil;
     }
 
-    public void setLog(LogService log) {
+    public void setLog(final LogService log) {
         this.log = log;
     }
 
-    public void setPermissionChecker(PermissionChecker permissionChecker) {
+    public void setPermissionChecker(final PermissionChecker permissionChecker) {
         this.permissionChecker = permissionChecker;
     }
 
-    public void setQdsl(QuerydslSupport qdsl) {
+    public void setQdsl(final QuerydslSupport qdsl) {
         this.qdsl = qdsl;
     }
 
-    public void setResourceService(ResourceService resourceService) {
+    public void setResourceService(final ResourceService resourceService) {
         this.resourceService = resourceService;
     }
 
-    private void stressTest(long[] authorizedResourceIds, long[] targetResourceIds, String action) {
+    private void stressTest(final long[] authorizedResourceIds, final long[] targetResourceIds, final String action) {
         log.log(LogService.LOG_INFO, "Starting stress test");
         final long iterationNum = 10000000;
         final int threadNum = 2;
@@ -267,8 +267,10 @@ public class AuthorizationTest {
         authorizationManager.addPermissionInheritance(a1, a3);
         authorizationManager.addPermissionInheritance(a2, a3);
 
-        Assert.assertArrayEquals(sort(new long[] { a1, a2, a3 }), sort(permissionChecker.getAuthorizationScope(a3)));
-        Assert.assertArrayEquals(sort(new long[] { a1, a2 }), sort(permissionChecker.getAuthorizationScope(a1)));
+        Assert.assertArrayEquals(AuthorizationTest.sort(new long[] { a1, a2, a3 }),
+                AuthorizationTest.sort(permissionChecker.getAuthorizationScope(a3)));
+        Assert.assertArrayEquals(AuthorizationTest.sort(new long[] { a1, a2 }),
+                AuthorizationTest.sort(permissionChecker.getAuthorizationScope(a1)));
 
         authorizationManager.clearCache();
         clearTable(QPermission.permission);
@@ -345,8 +347,8 @@ public class AuthorizationTest {
         authorizationManager.addPermissionInheritance(a6, a8);
         authorizationManager.addPermissionInheritance(a7, a8);
 
-        Assert.assertArrayEquals(sort(new long[] { a1, a2, a3, a6, a4 }),
-                sort(permissionChecker.getAuthorizationScope(a6)));
+        Assert.assertArrayEquals(AuthorizationTest.sort(new long[] { a1, a2, a3, a6, a4 }),
+                AuthorizationTest.sort(permissionChecker.getAuthorizationScope(a6)));
 
         Assert.assertFalse(permissionChecker.hasPermission(a1, t1, "x"));
         Assert.assertTrue(permissionChecker.hasPermission(a1, t1, action1));
@@ -362,7 +364,8 @@ public class AuthorizationTest {
 
         Assert.assertFalse(permissionChecker.hasPermission(a8, t4, action1));
         Assert.assertTrue(permissionChecker.hasPermission(a8, t2, action1));
-        Assert.assertArrayEquals(sort(new long[] { a1, a3, a6 }), sort(permissionChecker.getAuthorizationScope(a6)));
+        Assert.assertArrayEquals(AuthorizationTest.sort(new long[] { a1, a3, a6 }),
+                AuthorizationTest.sort(permissionChecker.getAuthorizationScope(a6)));
 
         authorizationManager.removePermissionInheritance(a2, a5);
 
@@ -454,10 +457,10 @@ public class AuthorizationTest {
 
         Assert.assertTrue(permissionChecker.hasPermission(a1, INVALID_RESOURCE_ID, ""));
 
-        Assert.assertArrayEquals(sort(new long[] { systemResourceId, a1 }),
+        Assert.assertArrayEquals(AuthorizationTest.sort(new long[] { systemResourceId, a1 }),
                 resolveTargetResourcesWithPermission(systemResourceId, ""));
 
-        Assert.assertArrayEquals(sort(new long[] { systemResourceId, a1 }),
+        Assert.assertArrayEquals(AuthorizationTest.sort(new long[] { systemResourceId, a1 }),
                 resolveTargetResourcesWithPermission(a1, ""));
 
         clearTable(QPermission.permission);

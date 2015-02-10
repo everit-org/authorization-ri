@@ -18,12 +18,13 @@ package org.everit.osgi.authorization.ri;
 
 public final class AuthorizationRIConstants {
 
-    public static final String PROP_CACHE_FACTORY_TARGET = "cacheFactory.target";
+    public static final String DEFAULT_SERVICE_DESCRIPTION = "Default Authorization";
 
-    public static final String PROP_PERMISSION_CACHE_CONFIGURATION_TARGET = "permissionCacheConfiguration.target";
+    public static final String PROP_PERMISSION_CACHE_TARGET = "permissionCache.target";
 
-    public static final String PROP_PERMISSION_INHERITANCE_CACHE_CONFIGURATION_TARGET =
-            "permissionInheritanceCacheConfiguration.target";
+    public static final String PROP_PERMISSION_INHERITANCE_CACHE_TARGET = "permissionInheritanceCache.target";
+
+    public static final String DEFAULT_CACHE_TARGET = "(MUST_BE_SET=TO_SOMETHING)";
 
     public static final String PROP_QUERYDSL_SUPPORT_TARGET = "querydslSupport.target";
 
@@ -36,6 +37,10 @@ public final class AuthorizationRIConstants {
     public static final String PROP_SYSTEM_RESOURCE_ID = "org.everit.osgi.authorization.ri.SYSTEM_RESOURCE_ID";
 
     public static final String PROP_RESOURCE_SERVICE_TARGET = "resourceService.target";
+
+    public static final String PROP_AUTHORIZATION_IMPL = "authorization.impl";
+
+    public static final String DEFAULT_AUTHORIZATION_IMPL = "ri";
 
     private AuthorizationRIConstants() {
     }
