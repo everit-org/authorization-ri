@@ -144,28 +144,27 @@ public class AuthorizationComponent implements AuthorizationManager, PermissionC
     public void addPermission(final long authorizedResourceId, final long targetResourceId, final String action) {
         Objects.requireNonNull(action);
 
-        th.required(() -> qdsl
-                .execute((connection, configuration) -> {
-                    boolean authorizedResourceExists = lockOnResource(connection, configuration, authorizedResourceId);
+        th.required(() -> qdsl.execute((connection, configuration) -> {
+            boolean authorizedResourceExists = lockOnResource(connection, configuration, authorizedResourceId);
 
-                    if (!authorizedResourceExists) {
-                        throw new IllegalArgumentException("Authorized resource does not exist with id "
-                                + authorizedResourceId);
-                    }
+            if (!authorizedResourceExists) {
+                throw new IllegalArgumentException("Authorized resource does not exist with id "
+                        + authorizedResourceId);
+            }
 
-                    QPermission p = QPermission.permission;
-                    SQLInsertClause insert = new SQLInsertClause(connection, configuration, p);
+            QPermission p = QPermission.permission;
+            SQLInsertClause insert = new SQLInsertClause(connection, configuration, p);
 
-                    insert
-                            .set(p.authorizedResourceId, authorizedResourceId)
-                            .set(p.targetResourceId, targetResourceId)
-                            .set(p.action, action)
-                            .execute();
+            insert
+                    .set(p.authorizedResourceId, authorizedResourceId)
+                    .set(p.targetResourceId, targetResourceId)
+                    .set(p.action, action)
+                    .execute();
 
-                    permissionCache.put(generatePermissionKey(authorizedResourceId, targetResourceId, action), true);
+            permissionCache.put(generatePermissionKey(authorizedResourceId, targetResourceId, action), true);
 
-                    return null;
-                }));
+            return null;
+        }));
     }
 
     @Override

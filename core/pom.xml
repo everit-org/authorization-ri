@@ -110,6 +110,10 @@
         <configuration>
           <instructions>
             <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
+            <Import-Package>
+              org.everit.osgi.authorization;version="[1.0,2)",
+              *
+            </Import-Package>
             <Export-Package>
               org.everit.osgi.authorization.ri;version=2.0.0
             </Export-Package>
