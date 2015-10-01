@@ -1,20 +1,19 @@
-/**
- * This file is part of Everit - Authorization RI Querydsl Schema.
+/*
+ * Copyright (C) 2011 Everit Kft. (http://www.everit.biz)
  *
- * Everit - Authorization RI Querydsl Schema is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Everit - Authorization RI Querydsl Schema is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ *         http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU Lesser General Public License
- * along with Everit - Authorization RI Querydsl Schema.  If not, see <http://www.gnu.org/licenses/>.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-package org.everit.osgi.authorization.ri.schema.qdsl;
+package org.everit.authorization.ri.schema.qdsl;
 
 import static com.mysema.query.types.PathMetadataFactory.*;
 
@@ -35,7 +34,7 @@ import com.mysema.query.sql.ColumnMetadata;
 @Generated("com.mysema.query.sql.codegen.MetaDataSerializer")
 public class QPermissionInheritance extends com.mysema.query.sql.RelationalPathBase<QPermissionInheritance> {
 
-    private static final long serialVersionUID = 1022978836;
+    private static final long serialVersionUID = 1141793126;
 
     public static final QPermissionInheritance permissionInheritance = new QPermissionInheritance("authr_permission_inheritance");
 
@@ -47,9 +46,9 @@ public class QPermissionInheritance extends com.mysema.query.sql.RelationalPathB
 
     public class ForeignKeys {
 
-        public final com.mysema.query.sql.ForeignKey<org.everit.osgi.resource.ri.schema.qdsl.QResource> childResourceFK = createForeignKey(childResourceId, "resource_id");
+        public final com.mysema.query.sql.ForeignKey<org.everit.resource.ri.schema.qdsl.QResource> childResourceFK = createForeignKey(childResourceId, "resource_id");
 
-        public final com.mysema.query.sql.ForeignKey<org.everit.osgi.resource.ri.schema.qdsl.QResource> parentResourceFK = createForeignKey(parentResourceId, "resource_id");
+        public final com.mysema.query.sql.ForeignKey<org.everit.resource.ri.schema.qdsl.QResource> parentResourceFK = createForeignKey(parentResourceId, "resource_id");
 
     }
 
@@ -62,7 +61,7 @@ public class QPermissionInheritance extends com.mysema.query.sql.RelationalPathB
     public final ForeignKeys fk = new ForeignKeys();
 
     public QPermissionInheritance(String variable) {
-        super(QPermissionInheritance.class, forVariable(variable), "org.everit.osgi.authorization.ri", "authr_permission_inheritance");
+        super(QPermissionInheritance.class, forVariable(variable), "org.everit.authorization.ri", "authr_permission_inheritance");
         addMetadata();
     }
 
@@ -72,12 +71,12 @@ public class QPermissionInheritance extends com.mysema.query.sql.RelationalPathB
     }
 
     public QPermissionInheritance(Path<? extends QPermissionInheritance> path) {
-        super(path.getType(), path.getMetadata(), "org.everit.osgi.authorization.ri", "authr_permission_inheritance");
+        super(path.getType(), path.getMetadata(), "org.everit.authorization.ri", "authr_permission_inheritance");
         addMetadata();
     }
 
     public QPermissionInheritance(PathMetadata<?> metadata) {
-        super(QPermissionInheritance.class, metadata, "org.everit.osgi.authorization.ri", "authr_permission_inheritance");
+        super(QPermissionInheritance.class, metadata, "org.everit.authorization.ri", "authr_permission_inheritance");
         addMetadata();
     }
 
