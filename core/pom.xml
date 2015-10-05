@@ -129,19 +129,19 @@
     <dependency>
       <groupId>org.everit.persistence</groupId>
       <artifactId>org.everit.persistence.querydsl.support.api</artifactId>
-      <version>1.0.0-SNAPSHOT</version>
+      <version>1.0.0</version>
     </dependency>
 
     <dependency>
       <groupId>org.everit.props</groupId>
       <artifactId>org.everit.props.api</artifactId>
-      <version>1.0.0-SNAPSHOT</version>
+      <version>1.0.0</version>
     </dependency>
 
     <dependency>
       <groupId>org.everit.resource</groupId>
       <artifactId>org.everit.resource.api</artifactId>
-      <version>1.0.0-SNAPSHOT</version>
+      <version>1.0.0</version>
     </dependency>
   </dependencies>
 </project>
