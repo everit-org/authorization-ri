@@ -53,7 +53,7 @@ public class AuthorizationImpl
     implements AuthorizationManager, PermissionChecker, AuthorizationQdslUtil {
 
   public static final String PROP_SYSTEM_RESOURCE_ID =
-      "org.everit.osgi.authorization.ri.SYSTEM_RESOURCE_ID";
+      "org.everit.authorization.ri.SYSTEM_RESOURCE_ID";
 
   private static long[] convertCollectionToLongArray(final Collection<Long> collection) {
     long[] result = new long[collection.size()];
