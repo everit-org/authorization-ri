@@ -29,7 +29,7 @@
 
   <groupId>org.everit.authorization</groupId>
   <artifactId>org.everit.authorization.ri</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>1.0.0</version>
 
   <packaging>bundle</packaging>
   <name>Everit - Authorization RI</name>
@@ -106,7 +106,7 @@
     <dependency>
       <groupId>org.everit.authorization</groupId>
       <artifactId>org.everit.authorization.ri.schema.qdsl</artifactId>
-      <version>1.0.0-SNAPSHOT</version>
+      <version>1.0.0</version>
     </dependency>
 
     <dependency>
