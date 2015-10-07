@@ -4,11 +4,7 @@ authorization-ri
 Reference implentation of [Authorization API][1] based on
 [Modularized Persistence][2].
 
-## Component
-
-The module contains one Declarative Services component. The component can
-be instantiated multiple times via Configuration Admin. The component
-registers three OSGi services:
+## Interfaces
 
  - __AuthorizationManager:__ Managing permissions and permission
    inheritances

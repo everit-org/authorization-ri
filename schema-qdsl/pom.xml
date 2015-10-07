@@ -138,11 +138,6 @@
 
   <dependencies>
     <dependency>
-      <groupId>com.mysema.querydsl</groupId>
-      <artifactId>querydsl-sql</artifactId>
-      <version>3.6.7</version>
-    </dependency>
-    <dependency>
       <groupId>org.everit.resource</groupId>
       <artifactId>org.everit.resource.ri.schema.qdsl</artifactId>
       <version>1.0.0-SNAPSHOT</version>
