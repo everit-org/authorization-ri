@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright (C) 2011 Everit Kft. (http://www.everit.biz)
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+            http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<lqmg xmlns="http://everit.org/lqmg" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  defaultPackage="org.everit.authorization.ri.schema.qdsl">
+  <namingRules>
+    <classNameRule>
+      <entity>authr_permission</entity>
+      <class>Permission</class>
+      <propertyMappings>
+        <column>
+          <name>action_</name>
+          <property>action</property>
+        </column>
+        <primaryKey>
+          <name>pk_authr_perm</name>
+          <property>permissionPK</property>
+        </primaryKey>
+        <foreignKey>
+          <name>fk_res_r_authr_p_a</name>
+          <property>authorizedResourceFK</property>
+        </foreignKey>
+        <foreignKey>
+          <name>fk_res_r_authr_p_t</name>
+          <property>targetResourceFK</property>
+        </foreignKey>
+      </propertyMappings>
+    </classNameRule>
+    <classNameRule>
+      <entity>authr_permission_inheritance</entity>
+      <class>PermissionInheritance</class>
+      <propertyMappings>
+        <primaryKey>
+          <name>pk_authr_perm_inheritance</name>
+          <property>permissionInheritancePK</property>
+        </primaryKey>
+        <foreignKey>
+          <name>fk_res_r_authr_pi_p</name>
+          <property>parentResourceFK</property>
+        </foreignKey>
+        <foreignKey>
+          <name>fk_res_r_authr_pi_c</name>
+          <property>childResourceFK</property>
+        </foreignKey>
+      </propertyMappings>
+    </classNameRule>
+  </namingRules>
+</lqmg>

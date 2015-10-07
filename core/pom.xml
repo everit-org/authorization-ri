@@ -1,20 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    This file is part of Everit - Authorization RI.
+    Copyright (C) 2011 Everit Kft. (http://www.everit.biz)
 
-    Everit - Authorization RI is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Lesser General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
 
-    Everit - Authorization RI is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Lesser General Public License for more details.
+            http://www.apache.org/licenses/LICENSE-2.0
 
-    You should have received a copy of the GNU Lesser General Public License
-    along with Everit - Authorization RI.  If not, see <http://www.gnu.org/licenses/>.
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
 
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -25,12 +24,12 @@
   <parent>
     <groupId>org.everit.config</groupId>
     <artifactId>org.everit.config.oss</artifactId>
-    <version>5.0.2</version>
+    <version>7.0.1</version>
   </parent>
 
-  <groupId>org.everit.osgi</groupId>
-  <artifactId>org.everit.osgi.authorization.ri</artifactId>
-  <version>2.0.0</version>
+  <groupId>org.everit.authorization</groupId>
+  <artifactId>org.everit.authorization.ri</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
 
   <packaging>bundle</packaging>
   <name>Everit - Authorization RI</name>
@@ -58,8 +57,8 @@
 
   <licenses>
     <license>
-      <name>GNU Lesser General Public License v3.0</name>
-      <url>http://opensource.org/licenses/LGPL-3.0</url>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
       <distribution>repo</distribution>
     </license>
   </licenses>
@@ -78,138 +77,70 @@
   <build>
     <plugins>
       <plugin>
-        <artifactId>maven-checkstyle-plugin</artifactId>
-        <configuration>
-          <!-- Temporarily added to avoid checkstyle java8 failures -->
-          <failOnViolation>false</failOnViolation>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>build-helper-maven-plugin</artifactId>
-        <version>1.9</version>
-        <executions>
-          <execution>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>add-source</goal>
-            </goals>
-            <configuration>
-              <sources>
-                <source>src/main/generated/java/</source>
-              </sources>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
-        <version>2.5.3</version>
         <extensions>true</extensions>
         <configuration>
           <instructions>
             <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
             <Import-Package>
-              org.everit.osgi.authorization;version="[1.0,2)",
+              org.everit.authorization;version="[1.0,2)",
               *
             </Import-Package>
             <Export-Package>
-              org.everit.osgi.authorization.ri;version=2.0.0
+              org.everit.authorization.ri;version=1.0.0
             </Export-Package>
           </instructions>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>net.distilledcode.maven</groupId>
-        <artifactId>baselining-maven-plugin</artifactId>
-        <version>1.0.4</version>
-        <executions>
-          <execution>
-            <id>baseline</id>
-            <goals>
-              <goal>baseline</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.felix</groupId>
-        <artifactId>maven-scr-plugin</artifactId>
-        <version>1.20.0</version>
-        <executions>
-          <execution>
-            <id>generate-scr-scrdescriptor</id>
-            <goals>
-              <goal>scr</goal>
-            </goals>
-          </execution>
-        </executions>
       </plugin>
     </plugins>
   </build>
 
   <dependencies>
     <dependency>
-      <groupId>org.everit.osgi</groupId>
-      <artifactId>org.everit.osgi.authorization.api</artifactId>
+      <groupId>org.everit.authorization</groupId>
+      <artifactId>org.everit.authorization.api</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.everit.authorization</groupId>
+      <artifactId>org.everit.authorization.ri.schema.qdsl</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.everit.authorization</groupId>
+      <artifactId>org.everit.authorization.qdsl.util.api</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.everit.transaction</groupId>
+      <artifactId>org.everit.transaction.propagator.api</artifactId>
       <version>1.0.0</version>
     </dependency>
 
-    <dependency>
-      <groupId>org.everit.osgi</groupId>
-      <artifactId>org.everit.osgi.authorization.ri.schema.qdsl</artifactId>
-      <version>1.0.0</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.everit.osgi</groupId>
-      <artifactId>org.everit.osgi.authorization.qdsl.util.api</artifactId>
-      <version>1.0.0</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.core</artifactId>
-      <version>4.3.1</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.compendium</artifactId>
-      <version>4.3.1</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.felix</groupId>
-      <artifactId>org.apache.felix.scr.annotations</artifactId>
-      <version>1.9.8</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.everit.osgi</groupId>
-      <artifactId>org.everit.osgi.transaction.helper</artifactId>
-      <version>2.0.0</version>
-    </dependency>
     <dependency>
       <groupId>com.mysema.querydsl</groupId>
       <artifactId>querydsl-sql</artifactId>
-      <version>3.6.0</version>
+      <version>3.6.7</version>
     </dependency>
     <dependency>
-      <groupId>org.everit.osgi</groupId>
-      <artifactId>org.everit.osgi.querydsl.support</artifactId>
+      <groupId>org.everit.persistence</groupId>
+      <artifactId>org.everit.persistence.querydsl.support.api</artifactId>
       <version>1.0.0</version>
     </dependency>
 
     <dependency>
-      <groupId>org.everit.osgi</groupId>
-      <artifactId>org.everit.osgi.props.api</artifactId>
+      <groupId>org.everit.props</groupId>
+      <artifactId>org.everit.props.api</artifactId>
       <version>1.0.0</version>
     </dependency>
+
     <dependency>
-      <groupId>org.everit.osgi</groupId>
-      <artifactId>org.everit.osgi.resource.api</artifactId>
+      <groupId>org.everit.resource</groupId>
+      <artifactId>org.everit.resource.api</artifactId>
       <version>1.0.0</version>
     </dependency>
   </dependencies>
