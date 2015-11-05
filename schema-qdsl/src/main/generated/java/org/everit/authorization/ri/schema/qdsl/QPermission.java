@@ -15,15 +15,16 @@
  */
 package org.everit.authorization.ri.schema.qdsl;
 
-import static com.mysema.query.types.PathMetadataFactory.*;
+import static com.querydsl.core.types.PathMetadataFactory.*;
 
-import com.mysema.query.types.path.*;
+import com.querydsl.core.types.dsl.*;
 
-import com.mysema.query.types.PathMetadata;
+import com.querydsl.core.types.PathMetadata;
 import javax.annotation.Generated;
-import com.mysema.query.types.Path;
+import com.querydsl.core.types.Path;
 
-import com.mysema.query.sql.ColumnMetadata;
+import com.querydsl.sql.ColumnMetadata;
+import java.sql.Types;
 
 
 
@@ -31,8 +32,8 @@ import com.mysema.query.sql.ColumnMetadata;
 /**
  * QPermission is a Querydsl query type for QPermission
  */
-@Generated("com.mysema.query.sql.codegen.MetaDataSerializer")
-public class QPermission extends com.mysema.query.sql.RelationalPathBase<QPermission> {
+@Generated("com.querydsl.sql.codegen.MetaDataSerializer")
+public class QPermission extends com.querydsl.sql.RelationalPathBase<QPermission> {
 
     private static final long serialVersionUID = -195477308;
 
@@ -40,15 +41,7 @@ public class QPermission extends com.mysema.query.sql.RelationalPathBase<QPermis
 
     public class PrimaryKeys {
 
-        public final com.mysema.query.sql.PrimaryKey<QPermission> permissionPK = createPrimaryKey(action, authorizedResourceId, targetResourceId);
-
-    }
-
-    public class ForeignKeys {
-
-        public final com.mysema.query.sql.ForeignKey<org.everit.resource.ri.schema.qdsl.QResource> targetResourceFK = createForeignKey(targetResourceId, "resource_id");
-
-        public final com.mysema.query.sql.ForeignKey<org.everit.resource.ri.schema.qdsl.QResource> authorizedResourceFK = createForeignKey(authorizedResourceId, "resource_id");
+        public final com.querydsl.sql.PrimaryKey<QPermission> permissionPK = createPrimaryKey(action, authorizedResourceId, targetResourceId);
 
     }
 
@@ -59,8 +52,6 @@ public class QPermission extends com.mysema.query.sql.RelationalPathBase<QPermis
     public final NumberPath<Long> targetResourceId = createNumber("targetResourceId", Long.class);
 
     public final PrimaryKeys pk = new PrimaryKeys();
-
-    public final ForeignKeys fk = new ForeignKeys();
 
     public QPermission(String variable) {
         super(QPermission.class, forVariable(variable), "org.everit.authorization.ri", "authr_permission");
@@ -77,15 +68,15 @@ public class QPermission extends com.mysema.query.sql.RelationalPathBase<QPermis
         addMetadata();
     }
 
-    public QPermission(PathMetadata<?> metadata) {
+    public QPermission(PathMetadata metadata) {
         super(QPermission.class, metadata, "org.everit.authorization.ri", "authr_permission");
         addMetadata();
     }
 
     public void addMetadata() {
-        addMetadata(action, ColumnMetadata.named("action_").ofType(12).withSize(255).notNull());
-        addMetadata(authorizedResourceId, ColumnMetadata.named("authorized_resource_id").ofType(-5).withSize(19).notNull());
-        addMetadata(targetResourceId, ColumnMetadata.named("target_resource_id").ofType(-5).withSize(19).notNull());
+        addMetadata(action, ColumnMetadata.named("action_").withIndex(3).ofType(Types.VARCHAR).withSize(255).notNull());
+        addMetadata(authorizedResourceId, ColumnMetadata.named("authorized_resource_id").withIndex(1).ofType(Types.BIGINT).withSize(19).notNull());
+        addMetadata(targetResourceId, ColumnMetadata.named("target_resource_id").withIndex(2).ofType(Types.BIGINT).withSize(19).notNull());
     }
 
 }
