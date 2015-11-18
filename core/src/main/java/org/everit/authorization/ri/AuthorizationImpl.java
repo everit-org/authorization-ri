@@ -36,14 +36,14 @@ import org.everit.resource.ResourceService;
 import org.everit.resource.ri.schema.qdsl.QResource;
 import org.everit.transaction.propagator.TransactionPropagator;
 
-import com.mysema.query.sql.Configuration;
-import com.mysema.query.sql.SQLQuery;
-import com.mysema.query.sql.SQLSubQuery;
-import com.mysema.query.sql.dml.SQLDeleteClause;
-import com.mysema.query.sql.dml.SQLInsertClause;
-import com.mysema.query.types.Expression;
-import com.mysema.query.types.expr.BooleanExpression;
-import com.mysema.query.types.template.BooleanTemplate;
+import com.querydsl.core.types.Expression;
+import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.sql.Configuration;
+import com.querydsl.sql.SQLExpressions;
+import com.querydsl.sql.SQLQuery;
+import com.querydsl.sql.dml.SQLDeleteClause;
+import com.querydsl.sql.dml.SQLInsertClause;
 
 /**
  * Implementation of {@link AuthorizationManager}, {@link PermissionChecker} and
@@ -185,15 +185,13 @@ public class AuthorizationImpl
   public BooleanExpression authorizationPredicate(final long authorizedResourceId,
       final Expression<Long> targetResourceId, final String... actions) {
     if (authorizedResourceId == systemResourceId) {
-      return BooleanTemplate.TRUE;
+      return Expressions.TRUE;
     }
 
     Objects.requireNonNull(targetResourceId, "Parameter targetResourceId must not be null");
     validateActionsParameter(actions);
 
     long[] authorizationScope = getAuthorizationScope(authorizedResourceId);
-
-    SQLSubQuery subQuery = new SQLSubQuery();
 
     QPermission permission = QPermission.permission;
 
@@ -205,7 +203,7 @@ public class AuthorizationImpl
       Long[] authorizationScopeLongArray = new Long[authorizationScope.length];
       for (int i = 0, n = authorizationScope.length; i < n; i++) {
         if (authorizationScope[i] == systemResourceId) {
-          return BooleanTemplate.TRUE;
+          return Expressions.TRUE;
         }
         authorizationScopeLongArray[i] = authorizationScope[i];
       }
@@ -222,9 +220,11 @@ public class AuthorizationImpl
       actionPredicate = permission.action.in(actions);
     }
 
-    return subQuery.from(permission)
-        .where(permission.targetResourceId.eq(targetResourceId).and(
-            actionPredicate.and(authorizedResourceIdPredicate)))
+    return SQLExpressions
+        .select(permission.action, permission.authorizedResourceId, permission.targetResourceId)
+        .from(permission)
+        .where(permission.targetResourceId.eq(targetResourceId)
+            .and(actionPredicate.and(authorizedResourceIdPredicate)))
         .exists();
   }
 
@@ -315,10 +315,13 @@ public class AuthorizationImpl
 
   private boolean lockOnResource(final Connection connection, final Configuration configuration,
       final long resourceId) {
-    SQLQuery query = new SQLQuery(connection, configuration);
     QResource resource = QResource.resource;
-    List<Long> results = query.from(resource).where(resource.resourceId.eq(resourceId)).forUpdate()
-        .list(resource.resourceId);
+    List<Long> results = new SQLQuery<Long>(connection, configuration)
+        .select(resource.resourceId)
+        .from(resource)
+        .where(resource.resourceId.eq(resourceId))
+        .forUpdate()
+        .fetch();
     return !(results.size() == 0);
   }
 
@@ -330,12 +333,12 @@ public class AuthorizationImpl
 
   private long[] readParentResourceIdsFromDatabase(final long resourceId) {
     return querydslSupport.execute((connection, configuration) -> {
-      SQLQuery query = new SQLQuery(connection, configuration);
       QPermissionInheritance permissioninheritance = QPermissionInheritance.permissionInheritance;
-      List<Long> result = query.from(permissioninheritance)
+      List<Long> result = new SQLQuery<Long>(connection, configuration)
+          .select(permissioninheritance.parentResourceId)
+          .from(permissioninheritance)
           .where(permissioninheritance.childResourceId.eq(resourceId))
-          .list(permissioninheritance.parentResourceId);
-
+          .fetch();
       return AuthorizationImpl.convertCollectionToLongArray(result);
     });
   }
@@ -344,13 +347,14 @@ public class AuthorizationImpl
       final long targetResourceId,
       final String action) {
     return querydslSupport.execute((connection, configuration) -> {
-      SQLQuery query = new SQLQuery(connection, configuration);
       QPermission permission = QPermission.permission;
-      return query.from(permission)
+      long count = new SQLQuery<Boolean>(connection, configuration)
+          .from(permission)
           .where(permission.authorizedResourceId.eq(authorizedResourceId)
               .and(permission.targetResourceId.eq(targetResourceId))
               .and(permission.action.eq(action)))
-          .exists();
+          .fetchCount();
+      return count > 0;
     });
   }
 
