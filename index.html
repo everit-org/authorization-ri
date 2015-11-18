@@ -1,0 +1,215 @@
+<!DOCTYPE HTML>
+<!--
+
+    Copyright (C) 2011 Everit Kft. (http://www.everit.org)
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+            http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<html>
+
+<head>
+<meta charset="utf-8">
+<title>Authorization RI</title>
+<link rel="icon" type="image/ico" href="http://www.everit.org/fonts/favicon.ico">
+
+<!--    <link rel="stylesheet" type="text/css" href="common/css/base.css">-->
+<link href="http://www.everit.org/css/bootstrap.min.css" rel="stylesheet">
+<link href="http://www.everit.org/css/docs.min.css" rel="stylesheet">
+<link href="http://www.everit.org/css/everit.css" rel="stylesheet">
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push([ '_setAccount', 'UA-15041869-4' ]);
+  _gaq.push([ '_setDomainName', 'everit.org' ]);
+  _gaq.push([ '_trackPageview' ]);
+</script>
+</head>
+
+<body class="bs-docs-home" data-spy="scroll" data-target="#affix-nav">
+  <a class="sr-only" href="#content">Skip to main content</a>
+  <header class="navbar navbar-static-top bs-docs-nav" id="top" role="banner">
+    <div class="container">
+      <div class="navbar-header">
+        <button class="navbar-toggle" type="button" data-toggle="collapse"
+          data-target=".bs-navbar-collapse">
+          <span class="sr-only">Toggle navigation</span> <span class="icon-bar"></span> <span
+            class="icon-bar"></span> <span class="icon-bar"></span>
+        </button>
+        <a href="#" class="navbar-brand">Index</a>
+      </div>
+      <nav class="collapse navbar-collapse bs-navbar-collapse" role="navigation">
+        <ul class="nav navbar-nav">
+          <li><a href="https://github.com/everit-org/authorization-ri" target="_blank">Source</a></li>
+          <li><a href="http://www.everit.org/" target="_blank">Community</a></li>
+        </ul>
+        <ul class="nav navbar-nav navbar-right">
+          <li><a href="http://www.everit.biz" target="_blank">Enterprise</a></li>
+          <li><a href="http://everitorg.wordpress.com/" target="_blank">Blog</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <div class="bs-docs-masthead everit-header" id="content" role="main">
+    <div class="container">
+      <span class="bs-docs-booticon bs-docs-booticon-lg bs-docs-booticon-outline"> <img
+        class="logo" src="http://www.everit.org/fonts/sbz_e.svg" alt="E">
+      </span>
+      <p class="lead">Authorization RI</p>
+    </div>
+  </div>
+  <div class="container">
+    <div class="col-md-10">
+
+      <div class="bs-docs-featurette cookbook">
+        <h2 id="introduction" class="bs-docs-featurette-title">Introduction</h2>
+        <p>
+          Reference implentation of <a href="https://github.com/everit-org/authorization-api">Authorization
+            API</a> based on <a
+            href="http://everitorg.wordpress.com/2014/06/18/modularized-persistence/">Modularized
+            Persistence</a>.
+        </p>
+      </div>
+      <hr class="featurette-divider">
+
+      <div class="bs-docs-featurette cookbook">
+        <h2 id="interfaces" class="bs-docs-featurette-title">Interfaces</h2>
+        <ul>
+          <li><b>AuthorizationManager</b>: Managing permissions and permission inheritances</li>
+          <li><b>PermissionChecker</b>: Checking permissions, getting the scope of the
+            authorization and the resource id of the system</li>
+          <li><b>AuthorizationQdslUtil</b>: Generating predicates for existing Querydsl based
+            database queries</li>
+        </ul>
+      </div>
+      <hr class="featurette-divider">
+
+      <div class="bs-docs-featurette cookbook">
+        <h2 id="god_mode" class="bs-docs-featurette-title">God mode</h2>
+        <p>There is a resource id that identifies the system. It is created when the
+          authorization-ri component is first started and stored in property-manager. It is possible
+          to retrieve the resource id of the system from the PermissionChecker OSGi service.</p>
+        <p>When the system resource is used, all permission checks return true (even if the
+          target resource id does not exist).</p>
+        <p>Programmers, who develop custom permission check query extensions, should always take
+          care of checking if the authorized resource id is the resource id of the system.</p>
+      </div>
+      <hr class="featurette-divider">
+
+      <div class="bs-docs-featurette cookbook">
+        <h2 id="database_structure" class="bs-docs-featurette-title">Database structure</h2>
+        <h3 id="permission_table">Permission table</h3>
+        <ul>
+          <li><b>authorized_resource_id</b>: Resource id of a user, group, role, etc. A
+            resource that can be authorized to do actions on something.</li>
+          <li><b>target_resource_id</b>: Resource id of a book, document, etc. A resource that
+            can be used to run authorized actions on.</li>
+          <li><b>action</b>: edit, view, delete, etc. Any activity that needs permission.</li>
+        </ul>
+        <p>All three fields are part of the composite primary key of the table. The two resource
+          ids are foreign keys that reference the resource table.</p>
+        <h3 id="permission_inheritance_table">Permission inheritance table</h3>
+        <ul>
+          <li><b>parent_resource_id</b>: Resource id of a role, user group, etc.</li>
+          <li><b>child_resource_id</b>: Resource id of a user, role, user group, etc.</li>
+        </ul>
+        <p>The child resource inherits all rights from the parent resource. Inheritance works
+          transitively. E.g.: Multi-level role or user group hierarchy can be designed.</p>
+        <p>The two fields are part of the composite primary key of the table. Both fields are
+          foreign keys that reference the resource table.</p>
+      </div>
+      <hr class="featurette-divider">
+
+      <div class="bs-docs-featurette cookbook">
+        <h2 id="caching" class="bs-docs-featurette-title">Caching</h2>
+        <p>The component needs two caches to be able to work.</p>
+        <ul>
+          <li>Permission cache: Stores the records of the permission table. The cache also
+            stores those permissions, that were queried but the permission is not granted.</li>
+          <li>Permission inheritance cache: Stores the content of the permission_inheritance
+            table as it is.</li>
+        </ul>
+        <p>
+          NoOp cache can be used, however, the tests show that with a no-operation cache the <i>checkPermission</i>
+          function works at least twenty times slower.
+        </p>
+      </div>
+      <hr class="featurette-divider">
+
+      <div class="bs-docs-featurette cookbook">
+        <h2 id="performance" class="bs-docs-featurette-title">Performance</h2>
+        <p>With the simplest cache implementation (ConcurrentHashMap), and a simple three level
+          permission inheritance graph, the permission checker can answer a 1.000 times in a
+          millisecond on an average notebook. This might be worse a little bit with large set of
+          data and with a real transactional cache. The cache size should be at least as big as many
+          records are used frequently from the database frequently on one node.</p>
+      </div>
+      <hr class="featurette-divider">
+    </div>
+
+    <!--        Affix-->
+    <div class="col-md-2 col-sm-0 col-xs-0">
+      <nav id="affix-nav">
+        <ul class="nav nav-pills nav-stacked everit-affix" data-spy="affix" data-offset-top="350"
+          data-offset-bottom="140">
+          <li class="active"><a href="#introduction">Introduction</a></li>
+          <li><a href="#interfaces">Interfaces</a></li>
+          <li><a href="#god_mode">God mode</a></li>
+          <li><a href="#database_structure">Database structure</a>
+            <ul class="nav nav-pills nav-stacked">
+              <li><a href="#permission_table">Permission table</a></li>
+              <li><a href="#permission_inheritance_table">Permission inheritance table</a></li>
+            </ul></li>
+          <li><a href="#caching">Caching</a></li>
+          <li><a href="#performance">Performance</a></li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+
+  <div></div>
+  <footer class="bs-docs-footer" role="contentinfo">
+    <div class="container">
+      <div class="bs-docs-social">
+        <ul class="bs-docs-social-buttons">
+          <li class="follow-btn "><a href="https://twitter.com/EveritOrg"
+            class="twitter-follow-button" data-show-count="true">Follow @EveritOrg</a></li>
+          <li class="tweet-btn"><a href="https://twitter.com/share"
+            class="twitter-share-button" data-url="http://www.everit.org/">Tweet</a></li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Bootstrap core JavaScript
+================================================== -->
+  <!-- Placed at the end of the document so the pages load faster -->
+  <script src="http://www.everit.org/js/jquery-2.1.1.min.js"></script>
+  <script src="http://www.everit.org/js/bootstrap.min.js"></script>
+  <script src="http://www.everit.org/js/everit.js "></script>
+  <script type="text/javascript">
+      (function() {
+        var ga = document.createElement('script');
+        ga.type = 'text/javascript';
+        ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl'
+            : 'http://www')
+            + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0];
+        s.parentNode.insertBefore(ga, s);
+      })();
+    </script>
+  <script src="http://www.everit.org/js/prettify/run_prettify.js"></script>
+</body>
+
+</html>
