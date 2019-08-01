@@ -145,7 +145,7 @@
     <dependency>
       <groupId>org.everit.props</groupId>
       <artifactId>org.everit.props.ri.schema.qdsl</artifactId>
-      <version>3.0.1-SNAPSHOT</version>
+      <version>3.0.1</version>
     </dependency>
     <dependency>
       <groupId>com.querydsl</groupId>
