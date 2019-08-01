@@ -22,8 +22,8 @@
   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.0.xsd
         http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
 
-  <include file="org.everit.resource.ri.eosgi" />
-  <include file="org.everit.props.ri.eosgi" />
+  <include file="org.everit.resource.ri.osgi" />
+  <include file="org.everit.props.ri.osgi" />
 
   <changeSet id="1.0.0" author="everit">
 

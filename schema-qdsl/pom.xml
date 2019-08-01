@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.everit.config</groupId>
     <artifactId>org.everit.config.oss</artifactId>
-    <version>7.2.0</version>
+    <version>7.4.0</version>
   </parent>
 
   <groupId>org.everit.authorization</groupId>
@@ -89,11 +89,11 @@
               org.everit.authorization.ri.schema.qdsl;version=2.0.0
             </Export-Package>
             <Require-Capability>
-              liquibase.schema;filter:="(name=org.everit.resource.ri)",
-              liquibase.schema;filter:="(name=org.everit.props.ri)"
+              liquibase.changelog;filter:="(liquibase.changelog=org.everit.resource.ri)",
+              liquibase.changelog;filter:="(liquibase.changelog=org.everit.props.ri)"
             </Require-Capability>
             <Provide-Capability>
-              liquibase.schema;name=org.everit.authorization.ri;resource=/META-INF/liquibase/org.everit.authorization.ri.changelog.xml;lqmg.config.resource=/META-INF/liquibase/org.everit.authorization.ri.lqmg.xml
+              liquibase.changelog;liquibase.changelog=org.everit.authorization.ri;resource=/META-INF/liquibase/org.everit.authorization.ri.changelog.xml;lqmg.config.resource=/META-INF/liquibase/org.everit.authorization.ri.lqmg.xml
             </Provide-Capability>
           </instructions>
         </configuration>
@@ -101,7 +101,7 @@
       <plugin>
         <groupId>org.everit.persistence</groupId>
         <artifactId>lqmg-maven-plugin</artifactId>
-        <version>3.0.0-SNAPSHOT</version>
+        <version>4.1.1</version>
         <configuration>
           <defaultSchema>org.everit.authorization.ri</defaultSchema>
           <capability>org.everit.authorization.ri</capability>
@@ -111,7 +111,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
-        <version>1.9</version>
+        <version>3.0.0</version>
         <executions>
           <execution>
             <phase>generate-sources</phase>
@@ -140,12 +140,12 @@
     <dependency>
       <groupId>org.everit.resource</groupId>
       <artifactId>org.everit.resource.ri.schema.qdsl</artifactId>
-      <version>2.0.0-SNAPSHOT</version>
+      <version>3.0.0</version>
     </dependency>
     <dependency>
       <groupId>org.everit.props</groupId>
       <artifactId>org.everit.props.ri.schema.qdsl</artifactId>
-      <version>2.0.0-SNAPSHOT</version>
+      <version>3.0.0</version>
     </dependency>
   </dependencies>
 

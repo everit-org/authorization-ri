@@ -61,6 +61,11 @@ public class QPermissionInheritance extends com.querydsl.sql.RelationalPathBase<
         addMetadata();
     }
 
+    public QPermissionInheritance(String variable, String schema) {
+        super(QPermissionInheritance.class, forVariable(variable), schema, "authr_permission_inheritance");
+        addMetadata();
+    }
+
     public QPermissionInheritance(Path<? extends QPermissionInheritance> path) {
         super(path.getType(), path.getMetadata(), "org.everit.authorization.ri", "authr_permission_inheritance");
         addMetadata();

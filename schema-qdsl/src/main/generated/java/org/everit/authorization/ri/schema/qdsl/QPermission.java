@@ -63,6 +63,11 @@ public class QPermission extends com.querydsl.sql.RelationalPathBase<QPermission
         addMetadata();
     }
 
+    public QPermission(String variable, String schema) {
+        super(QPermission.class, forVariable(variable), schema, "authr_permission");
+        addMetadata();
+    }
+
     public QPermission(Path<? extends QPermission> path) {
         super(path.getType(), path.getMetadata(), "org.everit.authorization.ri", "authr_permission");
         addMetadata();
