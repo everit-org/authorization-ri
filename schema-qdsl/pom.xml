@@ -93,7 +93,7 @@
               liquibase.changelog;filter:="(liquibase.changelog=org.everit.props.ri)"
             </Require-Capability>
             <Provide-Capability>
-              liquibase.changelog;liquibase.changelog=org.everit.authorization.ri;resource=/META-INF/liquibase/org.everit.authorization.ri.changelog.xml;lqmg.config.resource=/META-INF/liquibase/org.everit.authorization.ri.lqmg.xml
+              liquibase.changelog;liquibase.changelog=org.everit.authorization.ri;resource=/META-INF/liquibase/org.everit.authorization.ri.changelog.xml;lqmg.config.resource=/META-INF/liquibase/org.everit.authorization.ri.lqmg.xml;version:Version="1.0.0"
             </Provide-Capability>
           </instructions>
         </configuration>
@@ -145,7 +145,12 @@
     <dependency>
       <groupId>org.everit.props</groupId>
       <artifactId>org.everit.props.ri.schema.qdsl</artifactId>
-      <version>3.0.0</version>
+      <version>3.0.1-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>com.querydsl</groupId>
+      <artifactId>querydsl-sql</artifactId>
+      <version>4.2.1</version>
     </dependency>
   </dependencies>
 
